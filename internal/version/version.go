@@ -7,7 +7,7 @@ import (
 )
 
 // Build-time parameters set via -ldflags
-var Version = "1.0.0"
+var Version = "0.1.0"
 
 // A user may install pug using `go install hylbscode@latest`.
 // without -ldflags, in which case the version above is unset. As a workaround
