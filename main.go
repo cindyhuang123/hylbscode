@@ -7,7 +7,10 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"sync"
+	"syscall"
 
 	fyneapp "fyne.io/fyne/v2/app"
 
@@ -65,7 +68,11 @@ func main() {
 	}
 	defer conn.Close()
 
-	ctx := context.Background()
+	// 监听 SIGINT/SIGTERM:后台进程被 kill 时也能优雅退出,
+	// 不依赖 GUI 窗口(窗口可能被外部销毁而不触发 quit 流程)。
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	core, err := app.New(ctx, conn)
 	if err != nil {
 		fatal("failed to initialize application: %v", err)
@@ -74,10 +81,31 @@ func main() {
 	a := fyneapp.NewWithID("com.hylbscode.desktop")
 	g := gui.NewMainWindow(a, core, ctx)
 	cancel := gui.SetupSubscriptions(g, ctx)
-	g.Window().SetOnClosed(cancel)
+
+	// 窗口一旦销毁(正常关闭或被外部销毁)就必须退出进程,
+	// 否则 a.Run() 一直阻塞,进程无窗口挂在后台。
+	var quitOnce sync.Once
+	quit := func() {
+		quitOnce.Do(func() {
+			cancel()
+			a.Quit()
+		})
+	}
+	g.Window().SetOnClosed(quit)
+
+	// 后台进程被 kill(SIGINT/SIGTERM)时同样优雅退出。
+	go func() {
+		<-ctx.Done()
+		logging.Info("termination signal received, quitting")
+		quit()
+	}()
+
 	g.Show()
 	if !config.HasProviderCredentials() {
 		g.ShowProviderSetup()
 	}
 	a.Run()
+
+	// 事件循环退出后清理核心资源(LSP/MCP 子进程、watcher goroutine)。
+	core.Shutdown()
 }
