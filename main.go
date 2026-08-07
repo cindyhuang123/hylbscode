@@ -18,6 +18,7 @@ import (
 	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/db"
 	"github.com/cindyhuang123/hylbscode/internal/gui"
+	"github.com/cindyhuang123/hylbscode/internal/inputmethod"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
 )
 
@@ -57,6 +58,10 @@ func main() {
 	}
 	defer logFile.Close()
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.MultiWriter(os.Stderr, logFile), &slog.HandlerOptions{Level: level})))
+	// 修复 fcitx5 XIM 服务(见 internal/inputmethod): 必须在创建 GLFW 窗口前
+	// 完成, 否则 X11 后端连接输入法时服务仍不可用。放在日志初始化之后,
+	// 便于在日志中追踪修复过程。
+	inputmethod.EnsureFcitxXIM()
 	if !config.HasProviderCredentials() {
 		fmt.Fprintln(os.Stderr, "warning: no LLM provider credentials detected in environment variables.")
 		fmt.Fprintln(os.Stderr, "  (providers configured in the config file are still honored)")

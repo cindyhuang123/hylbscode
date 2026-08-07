@@ -76,6 +76,9 @@ func NewMainWindow(fyneApp fyne.App, core *app.App, ctx context.Context) *MainWi
 		g.applyThemeFont(theme.LightTheme())
 	case "dark":
 		g.applyThemeFont(theme.DarkTheme())
+	default:
+		// auto/空: 跟随系统主题, 但自定义字体仍需应用。
+		g.applyThemeFont(nil)
 	}
 	return g
 }
