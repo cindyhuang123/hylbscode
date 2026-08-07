@@ -38,6 +38,7 @@ type ChatArea struct {
 	cancelled   atomic.Bool
 	cancelFunc  context.CancelFunc
 	onSessionID func(string)
+	onSetup     func()
 	toolMu      sync.Mutex
 	toolBlocks  map[string]*ToolBlock
 	renderCache map[string]fyne.CanvasObject
@@ -278,6 +279,23 @@ func (c *ChatArea) SetWindow(win fyne.Window) {
 	c.win = win
 }
 
+// SetOnSetup registers a callback invoked when the user needs to configure an
+// LLM provider before sending a message.
+func (c *ChatArea) SetOnSetup(fn func()) {
+	c.onSetup = fn
+}
+
+// showProviderSetupPrompt 提示用户先配置 API Key，并拉起设置弹窗。
+func (c *ChatArea) showProviderSetupPrompt() {
+	if c.onSetup != nil {
+		c.onSetup()
+		return
+	}
+	if c.win != nil {
+		dialog.ShowInformation("API Key 未配置", "请先在设置中配置 API Key。", c.win)
+	}
+}
+
 func (c *ChatArea) PickAttachment() {
 	if c.win == nil {
 		logging.Warn("chatarea: no window for file dialog")
@@ -379,6 +397,12 @@ func (c *ChatArea) Send() {
 	}
 	c.input.SetText("")
 	logging.Info("send: text", "text", text)
+
+	if c.core.CoderAgent == nil {
+		logging.Warn("send: coder agent not configured, prompting provider setup")
+		c.showProviderSetupPrompt()
+		return
+	}
 
 	sessionID := c.current
 	if sessionID == "" {

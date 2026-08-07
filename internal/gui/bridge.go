@@ -44,11 +44,26 @@ func subscribe[T any](
 	}()
 }
 
+// subscribeCoderAgent subscribes the coder agent events if the agent exists.
+// Called at startup and again after the user saves an API key.
+func (g *MainWindow) subscribeCoderAgent() {
+	if g.core == nil || g.core.CoderAgent == nil || g.subWG == nil {
+		return
+	}
+	subscribe(g.subCtx, g.subWG, "coderAgent", g.core.CoderAgent.Subscribe, g.chat.OnAgentEvent)
+}
+
 // SetupSubscriptions wires the core services' events to the GUI. It returns
 // a cancel func that stops all subscription goroutines.
+//
+// coderAgent 订阅单独管理：CoderAgent 尚未创建（没配置 API Key）时先跳过，
+// 配置保存后通过 SubscribeCoderAgent 补齐。
 func SetupSubscriptions(g *MainWindow, parentCtx context.Context) func() {
 	ctx, cancel := context.WithCancel(parentCtx)
 	var wg sync.WaitGroup
+
+	g.subCtx = ctx
+	g.subWG = &wg
 
 	subscribe(ctx, &wg, "history", g.core.History.Subscribe, func(ev pubsub.Event[history.File]) {
 		// M2: file history panel
@@ -57,7 +72,7 @@ func SetupSubscriptions(g *MainWindow, parentCtx context.Context) func() {
 	subscribe(ctx, &wg, "messages", g.core.Messages.Subscribe, g.chat.OnMessageEvent)
 	subscribe(ctx, &wg, "permissions", g.core.Permissions.Subscribe, g.showPermission)
 	subscribe(ctx, &wg, "todos", g.core.Todos.Subscribe, g.todo.OnTodoEvent)
-	subscribe(ctx, &wg, "coderAgent", g.core.CoderAgent.Subscribe, g.chat.OnAgentEvent)
+	g.subscribeCoderAgent()
 
 	return func() {
 		logging.Info("Cancelling all GUI subscriptions")

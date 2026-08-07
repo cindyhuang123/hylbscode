@@ -85,6 +85,13 @@ func (g *MainWindow) ShowProviderSetup() {
 			dialog.ShowInformation(tr.GUIProviderTitle, err.Error(), g.win)
 			return
 		}
+		// 配置保存成功后重建 coder agent，使用户无需重启即可使用。
+		if err := g.core.EnsureCoderAgent(); err != nil {
+			logging.Error("failed to create coder agent after provider setup: %v", err)
+			dialog.ShowInformation(tr.GUIProviderTitle, "API Key 已保存，但创建模型代理失败: "+err.Error(), g.win)
+			return
+		}
+		g.subscribeCoderAgent()
 		dialog.ShowInformation(tr.GUIProviderTitle, tr.GUIProviderSaved, g.win)
 	}, g.win)
 	dlg.Resize(fyne.NewSize(450, 300))

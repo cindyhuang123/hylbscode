@@ -43,6 +43,9 @@ Thumbs.db
 
 .hylbscode/
 
+# Local user config (contains API keys)
+.hylbscode.json
+
 docs/
 
 # Built binary

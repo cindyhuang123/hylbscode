@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -43,6 +44,9 @@ type MainWindow struct {
 	themeMenu                        *fyne.Menu
 	viewMenu                         *fyne.Menu
 	viewLeftItem, viewRightItem      *fyne.MenuItem
+
+	subCtx context.Context
+	subWG  *sync.WaitGroup
 }
 
 func NewMainWindow(fyneApp fyne.App, core *app.App, ctx context.Context) *MainWindow {
@@ -50,6 +54,7 @@ func NewMainWindow(fyneApp fyne.App, core *app.App, ctx context.Context) *MainWi
 	g.sidebar = NewSessionSidebar(core, ctx, g.selectSession)
 	g.chat = NewChatArea(core, ctx)
 	g.chat.SetOnSessionCreated(g.selectSession)
+	g.chat.SetOnSetup(g.ShowProviderSetup)
 	g.todo = NewTodoPanel(core, ctx)
 	g.sidebar.SetOnDelete(g.onSessionDeleted)
 	g.sessionPanel = NewSessionPanel(core, ctx)
@@ -228,6 +233,11 @@ func (g *MainWindow) compactContext() {
 	tr := config.Tr()
 	dialog.ShowConfirm(tr.GUIContextCompact, tr.GUIContextCompact+"?", func(ok bool) {
 		if !ok {
+			return
+		}
+		if g.core.CoderAgent == nil {
+			logging.Warn("compact: coder agent not configured")
+			g.ShowProviderSetup()
 			return
 		}
 		if err := g.core.CoderAgent.Summarize(g.ctx, sessionID); err != nil {

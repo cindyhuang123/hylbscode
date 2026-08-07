@@ -60,27 +60,40 @@ func New(ctx context.Context, conn *sql.DB) (*App, error) {
 	// Initialize LSP clients in the background
 	go app.initLSPClients(ctx)
 
-	var err error
-	app.CoderAgent, err = agent.NewAgent(
-		config.AgentCoder,
-		app.Sessions,
-		app.Messages,
-		agent.CoderAgentTools(
-			app.Permissions,
-			app.Sessions,
-			app.Messages,
-			app.History,
-			app.Search,
-			app.Todos,
-			app.LSPClients,
-		),
-	)
-	if err != nil {
-		logging.Error("Failed to create coder agent", err)
-		return nil, err
+	// Coder agent 创建失败时不致命：没配置 API Key 时也要能启动 GUI
+	// 让用户通过设置界面配置，配置保存后再重建（见 EnsureCoderAgent）。
+	if err := app.EnsureCoderAgent(); err != nil {
+		logging.Warn("coder agent not created yet, will prompt for provider setup", "err", err)
 	}
 
 	return app, nil
+}
+
+// EnsureCoderAgent 创建 coder agent（若尚未创建）。在启动时或用户配置完
+// API Key 后调用，返回错误时 CoderAgent 保持为空。
+func (a *App) EnsureCoderAgent() error {
+	if a.CoderAgent != nil {
+		return nil
+	}
+	agentSvc, err := agent.NewAgent(
+		config.AgentCoder,
+		a.Sessions,
+		a.Messages,
+		agent.CoderAgentTools(
+			a.Permissions,
+			a.Sessions,
+			a.Messages,
+			a.History,
+			a.Search,
+			a.Todos,
+			a.LSPClients,
+		),
+	)
+	if err != nil {
+		return err
+	}
+	a.CoderAgent = agentSvc
+	return nil
 }
 
 // Shutdown performs a clean shutdown of the application
