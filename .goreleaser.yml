@@ -1,0 +1,82 @@
+version: 2
+project_name: hylbscode
+before:
+  hooks:
+builds:
+  - id: linux
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w -X hylbscode/internal/version.Version={{.Version}}
+    main: ./main.go
+  - id: windows
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-w64-mingw32-gcc
+    goos:
+      - windows
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w -X hylbscode/internal/version.Version={{.Version}}
+      - -H=windowsgui
+    main: ./main.go
+
+archives:
+  - id: linux-archive
+    ids: [linux]
+    formats: [tar.gz]
+    name_template: "hylbscode-linux-x86_64"
+  - id: windows-archive
+    ids: [windows]
+    formats: [zip]
+    name_template: "hylbscode-windows-x86_64"
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  version_template: "0.0.0-{{ .Timestamp }}"
+aurs:
+  - name: hylbscode-ai
+    disable: '{{ not (isEnvSet "AUR_KEY") }}'
+    homepage: "https://github.com/cindyhuang123/hylbscode"
+    description: "Desktop AI coding assistant built with Fyne"
+    maintainers:
+      - "cindyhuang123 <cindyhuang123@users.noreply.github.com>"
+  - name: hylbscode
+    disable: '{{ not (isEnvSet "AUR_KEY") }}'
+    homepage: "https://github.com/cindyhuang123/hylbscode"
+    description: "Desktop AI coding assistant built with Fyne"
+    maintainers:
+      - "cindyhuang123 <cindyhuang123@users.noreply.github.com>"
+    license: "MIT"
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/hylbscode-ai-bin.git"
+    provides:
+      - hylbscode
+    conflicts:
+      - hylbscode
+    package: |-
+      install -Dm755 ./hylbscode "${pkgdir}/usr/bin/hylbscode"
+nfpms:
+  - maintainer: "cindyhuang123 <cindyhuang123@users.noreply.github.com>"
+    description: Desktop AI coding assistant built with Fyne
+    formats:
+      - deb
+      - rpm
+    file_name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^doc:"
+      - "^test:"
+      - "^ci:"
+      - "^ignore:"
+      - "^example:"
+      - "^wip:"

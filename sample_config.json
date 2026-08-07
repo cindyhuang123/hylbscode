@@ -1,0 +1,46 @@
+.hylbscode.json 
+{
+  "data": {},
+  "providers": {
+    "deepseek": {
+      "apiKey": "sk-xxxxxxxxxxxxxxxxxxxx",
+      "disabled": false,
+      "baseURL": ""
+    }
+  },
+  "agents": {
+    "coder": {
+      "model": "deepseek-v4-pro",
+      "maxTokens": 8000,
+      "reasoningEffort": "",
+      "thinking": ""
+    },
+    "summarizer": {
+      "model": "deepseek-v4-flash",
+      "maxTokens": 4000,
+      "reasoningEffort": "",
+      "thinking": "enabled"
+    },
+    "task": {
+      "model": "deepseek-v4-flash",
+      "maxTokens": 8000,
+      "reasoningEffort": "",
+      "thinking": "enabled"
+    },
+    "title": {
+      "model": "deepseek-v4-flash",
+      "maxTokens": 80,
+      "reasoningEffort": "",
+      "thinking": "disabled"
+    }
+  },
+  "tui": {
+    "theme": "gocode",
+    "language": "zh"
+  },
+  "gui": {
+    "theme": "dark",
+    "font": "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf"
+  },
+  "shell": {}
+}

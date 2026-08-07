@@ -1,0 +1,591 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "agent": {
+      "description": "Agent configuration",
+      "properties": {
+        "maxTokens": {
+          "description": "Maximum tokens for the agent",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "model": {
+          "description": "Model ID for the agent",
+          "enum": [
+            "claude-3.7-sonnet",
+            "grok-3-mini-fast-beta",
+            "deepseek-v4-pro",
+            "bedrock.claude-3.7-sonnet",
+            "claude-3.5-haiku",
+            "gemini-2.5-flash",
+            "openrouter.gpt-4.5-preview",
+            "openrouter.o1",
+            "copilot.o3-mini",
+            "o1-mini",
+            "gpt-4.1-mini",
+            "gpt-4o",
+            "gemini-2.5",
+            "openrouter.gemini-2.5",
+            "copilot.gpt-3.5-turbo",
+            "copilot.gemini-2.0-flash",
+            "copilot.claude-3.7-sonnet-thought",
+            "copilot.gemini-2.5-pro",
+            "claude-3-opus",
+            "gpt-4.1",
+            "gpt-5.6-sol",
+            "azure.o1-mini",
+            "azure.gpt-4.1-mini",
+            "grok-3-fast-beta",
+            "glm-5.1",
+            "claude-4-opus",
+            "o4-mini",
+            "llama-3.3-70b-versatile",
+            "openrouter.o3-mini",
+            "copilot.gpt-4",
+            "copilot.o1",
+            "copilot.gpt-4o-mini",
+            "copilot.gpt-4.1",
+            "o1-pro",
+            "gpt-5.6-terra",
+            "gpt-4.1-nano",
+            "azure.o4-mini",
+            "openrouter.deepseek-r1-free",
+            "openrouter.gpt-4.1",
+            "grok-3-mini-beta",
+            "glm-4.7",
+            "claude-4-sonnet",
+            "o3-mini",
+            "azure.o3",
+            "grok-3-beta",
+            "copilot.gpt-4o",
+            "copilot.o4-mini",
+            "glm-5",
+            "gemini-2.0-flash",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "azure.gpt-4.1",
+            "azure.o1",
+            "vertexai.gemini-2.5",
+            "glm-5.2",
+            "openrouter.claude-3.5-haiku",
+            "gpt-4o-mini",
+            "gpt-4.5-preview",
+            "azure.o3-mini",
+            "openrouter.o3",
+            "copilot.claude-3.5-sonnet",
+            "deepseek-v4-flash",
+            "deepseek-r1-distill-llama-70b",
+            "azure.gpt-4o-mini",
+            "azure.gpt-4.5-preview",
+            "copilot.claude-3.7-sonnet",
+            "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "openrouter.claude-3.5-sonnet",
+            "openrouter.claude-3-haiku",
+            "openrouter.gpt-4o-mini",
+            "glm-4.5-air",
+            "azure.gpt-4o",
+            "openrouter.gpt-4o",
+            "openrouter.claude-3.7-sonnet",
+            "claude-3-haiku",
+            "azure.gpt-4.1-nano",
+            "openrouter.o1-pro",
+            "openrouter.o4-mini",
+            "vertexai.gemini-2.5-flash",
+            "copilot.claude-sonnet-4",
+            "claude-3.5-sonnet",
+            "o3",
+            "gpt-5.6-luna",
+            "o1",
+            "openrouter.o1-mini",
+            "openrouter.claude-3-opus",
+            "openrouter.gpt-4.1-mini",
+            "openrouter.gpt-4.1-nano",
+            "gemini-2.0-flash-lite",
+            "qwen-qwq",
+            "openrouter.gemini-2.5-flash"
+          ],
+          "type": "string"
+        },
+        "reasoningEffort": {
+          "description": "Reasoning effort for models that support it (OpenAI, Anthropic)",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "Configuration schema for the HyLbsCode application",
+  "properties": {
+    "agents": {
+      "additionalProperties": {
+        "description": "Agent configuration",
+        "properties": {
+          "maxTokens": {
+            "description": "Maximum tokens for the agent",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "model": {
+            "description": "Model ID for the agent",
+            "enum": [
+              "claude-3.7-sonnet",
+              "grok-3-mini-fast-beta",
+              "deepseek-v4-pro",
+              "bedrock.claude-3.7-sonnet",
+              "claude-3.5-haiku",
+              "gemini-2.5-flash",
+              "openrouter.gpt-4.5-preview",
+              "openrouter.o1",
+              "copilot.o3-mini",
+              "o1-mini",
+              "gpt-4.1-mini",
+              "gpt-4o",
+              "gemini-2.5",
+              "openrouter.gemini-2.5",
+              "copilot.gpt-3.5-turbo",
+              "copilot.gemini-2.0-flash",
+              "copilot.claude-3.7-sonnet-thought",
+              "copilot.gemini-2.5-pro",
+              "claude-3-opus",
+              "gpt-4.1",
+              "gpt-5.6-sol",
+              "azure.o1-mini",
+              "azure.gpt-4.1-mini",
+              "grok-3-fast-beta",
+              "glm-5.1",
+              "claude-4-opus",
+              "o4-mini",
+              "llama-3.3-70b-versatile",
+              "openrouter.o3-mini",
+              "copilot.gpt-4",
+              "copilot.o1",
+              "copilot.gpt-4o-mini",
+              "copilot.gpt-4.1",
+              "o1-pro",
+              "gpt-5.6-terra",
+              "gpt-4.1-nano",
+              "azure.o4-mini",
+              "openrouter.deepseek-r1-free",
+              "openrouter.gpt-4.1",
+              "grok-3-mini-beta",
+              "glm-4.7",
+              "claude-4-sonnet",
+              "o3-mini",
+              "azure.o3",
+              "grok-3-beta",
+              "copilot.gpt-4o",
+              "copilot.o4-mini",
+              "glm-5",
+              "gemini-2.0-flash",
+              "meta-llama/llama-4-scout-17b-16e-instruct",
+              "azure.gpt-4.1",
+              "azure.o1",
+              "vertexai.gemini-2.5",
+              "glm-5.2",
+              "openrouter.claude-3.5-haiku",
+              "gpt-4o-mini",
+              "gpt-4.5-preview",
+              "azure.o3-mini",
+              "openrouter.o3",
+              "copilot.claude-3.5-sonnet",
+              "deepseek-v4-flash",
+              "deepseek-r1-distill-llama-70b",
+              "azure.gpt-4o-mini",
+              "azure.gpt-4.5-preview",
+              "copilot.claude-3.7-sonnet",
+              "meta-llama/llama-4-maverick-17b-128e-instruct",
+              "openrouter.claude-3.5-sonnet",
+              "openrouter.claude-3-haiku",
+              "openrouter.gpt-4o-mini",
+              "glm-4.5-air",
+              "azure.gpt-4o",
+              "openrouter.gpt-4o",
+              "openrouter.claude-3.7-sonnet",
+              "claude-3-haiku",
+              "azure.gpt-4.1-nano",
+              "openrouter.o1-pro",
+              "openrouter.o4-mini",
+              "vertexai.gemini-2.5-flash",
+              "copilot.claude-sonnet-4",
+              "claude-3.5-sonnet",
+              "o3",
+              "gpt-5.6-luna",
+              "o1",
+              "openrouter.o1-mini",
+              "openrouter.claude-3-opus",
+              "openrouter.gpt-4.1-mini",
+              "openrouter.gpt-4.1-nano",
+              "gemini-2.0-flash-lite",
+              "qwen-qwq",
+              "openrouter.gemini-2.5-flash"
+            ],
+            "type": "string"
+          },
+          "reasoningEffort": {
+            "description": "Reasoning effort for models that support it (OpenAI, Anthropic)",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "type": "object"
+      },
+      "description": "Agent configurations",
+      "properties": {
+        "coder": {
+          "$ref": "#/definitions/agent"
+        },
+        "task": {
+          "$ref": "#/definitions/agent"
+        },
+        "title": {
+          "$ref": "#/definitions/agent"
+        }
+      },
+      "type": "object"
+    },
+    "autoCompact": {
+      "default": true,
+      "description": "Automatically summarize the session when approaching the context window limit",
+      "type": "boolean"
+    },
+    "autoCompactThreshold": {
+      "default": 0.7,
+      "description": "Fraction of the context window at which automatic compaction triggers (0-1)",
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "contextPaths": {
+      "default": [
+        ".github/copilot-instructions.md",
+        ".cursorrules",
+        ".cursor/rules/",
+        "CLAUDE.md",
+        "CLAUDE.local.md",
+        "hylbscode.md",
+        "hylbscode.local.md",
+        "HyLbsCode.md",
+        "HyLbsCode.local.md",
+        "HYLBSCODE.md",
+        "HYLBSCODE.local.md"
+      ],
+      "description": "Context paths for the application",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "data": {
+      "description": "Storage configuration",
+      "properties": {
+        "directory": {
+          "default": ".hylbscode",
+          "description": "Directory where application data is stored",
+          "type": "string"
+        }
+      },
+      "required": [
+        "directory"
+      ],
+      "type": "object"
+    },
+    "debug": {
+      "default": false,
+      "description": "Enable debug mode",
+      "type": "boolean"
+    },
+    "debugLSP": {
+      "default": false,
+      "description": "Enable LSP debug mode",
+      "type": "boolean"
+    },
+    "extraModels": {
+      "description": "Register additional models from the config file without recompiling",
+      "items": {
+        "properties": {
+          "apiModel": {
+            "description": "Model name sent to the provider API",
+            "type": "string"
+          },
+          "canReason": {
+            "description": "Whether the model supports reasoning effort. Must match what the provider client supports, as it changes the request format.",
+            "type": "boolean"
+          },
+          "contextWindow": {
+            "description": "Context window size in tokens",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "costPer1MIn": {
+            "description": "Input cost per 1M tokens (USD)",
+            "minimum": 0,
+            "type": "number"
+          },
+          "costPer1MInCached": {
+            "description": "Cached input cost per 1M tokens (USD)",
+            "minimum": 0,
+            "type": "number"
+          },
+          "costPer1MOut": {
+            "description": "Output cost per 1M tokens (USD)",
+            "minimum": 0,
+            "type": "number"
+          },
+          "costPer1MOutCached": {
+            "description": "Cached output cost per 1M tokens (USD)",
+            "minimum": 0,
+            "type": "number"
+          },
+          "defaultMaxTokens": {
+            "description": "Default maximum output tokens",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "description": "Unique model ID, referenced by agents.*.model. Replaces the built-in model with the same ID.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider serving this model; must have an API key configured",
+            "enum": [
+              "copilot",
+              "anthropic",
+              "openai",
+              "gemini",
+              "bedrock",
+              "groq",
+              "azure",
+              "vertexai",
+              "openrouter",
+              "xai",
+              "deepseek",
+              "glm",
+              "local"
+            ],
+            "type": "string"
+          },
+          "supportsAttachments": {
+            "description": "Whether the model accepts image attachments",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "apiModel",
+          "contextWindow"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "gui": {
+      "description": "Fyne desktop interface configuration",
+      "properties": {
+        "cnyRate": {
+          "description": "USD to CNY exchange rate used for cost display",
+          "type": "number"
+        },
+        "font": {
+          "description": "Path to a ttf/otf font file that overrides the built-in UI font",
+          "type": "string"
+        },
+        "height": {
+          "description": "Main window height in pixels",
+          "type": "integer"
+        },
+        "theme": {
+          "default": "auto",
+          "description": "GUI theme: auto, light, or dark",
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "description": "Main window width in pixels",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "lsp": {
+      "additionalProperties": {
+        "description": "LSP configuration for a language",
+        "properties": {
+          "args": {
+            "description": "Command arguments for the LSP server",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "command": {
+            "description": "Command to execute for the LSP server",
+            "type": "string"
+          },
+          "disabled": {
+            "default": false,
+            "description": "Whether the LSP is disabled",
+            "type": "boolean"
+          },
+          "options": {
+            "description": "Additional options for the LSP server",
+            "type": "object"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      },
+      "description": "Language Server Protocol configurations",
+      "type": "object"
+    },
+    "mcpServers": {
+      "additionalProperties": {
+        "description": "MCP server configuration",
+        "properties": {
+          "args": {
+            "description": "Command arguments for the MCP server",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "command": {
+            "description": "Command to execute for the MCP server",
+            "type": "string"
+          },
+          "env": {
+            "description": "Environment variables for the MCP server",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "HTTP headers for SSE type MCP servers",
+            "type": "object"
+          },
+          "type": {
+            "default": "stdio",
+            "description": "Type of MCP server",
+            "enum": [
+              "stdio",
+              "sse"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "URL for SSE type MCP servers",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      },
+      "description": "Model Control Protocol server configurations",
+      "type": "object"
+    },
+    "providers": {
+      "additionalProperties": {
+        "description": "Provider configuration",
+        "properties": {
+          "apiKey": {
+            "description": "API key for the provider",
+            "type": "string"
+          },
+          "disabled": {
+            "default": false,
+            "description": "Whether the provider is disabled",
+            "type": "boolean"
+          },
+          "provider": {
+            "description": "Provider type",
+            "enum": [
+              "copilot",
+              "anthropic",
+              "openai",
+              "gemini",
+              "bedrock",
+              "groq",
+              "azure",
+              "vertexai",
+              "openrouter",
+              "xai",
+              "deepseek",
+              "glm",
+              "local"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "description": "LLM provider configurations",
+      "type": "object"
+    },
+    "tui": {
+      "description": "Terminal User Interface configuration",
+      "properties": {
+        "language": {
+          "default": "en",
+          "description": "TUI language",
+          "enum": [
+            "en",
+            "zh"
+          ],
+          "type": "string"
+        },
+        "theme": {
+          "default": "hylbscode",
+          "description": "TUI theme name",
+          "enum": [
+            "hylbscode",
+            "catppuccin",
+            "dracula",
+            "flexoki",
+            "gruvbox",
+            "monokai",
+            "onedark",
+            "tron"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "wd": {
+      "description": "Working directory for the application",
+      "type": "string"
+    }
+  },
+  "title": "HyLbsCode Configuration",
+  "type": "object"
+}
