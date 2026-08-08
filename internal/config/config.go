@@ -161,9 +161,6 @@ func Load(workingDir string, debug bool) (*Config, error) {
 		return cfg, err
 	}
 
-	// Load and merge local config
-	mergeLocalConfig(workingDir)
-
 	setProviderDefaults()
 
 	// Apply configuration to the struct
@@ -499,27 +496,6 @@ func readConfig(err error) error {
 	}
 
 	return fmt.Errorf("failed to read config: %w", err)
-}
-
-// mergeLocalConfig loads and merges configuration from the local directory.
-func mergeLocalConfig(workingDir string) {
-	local := viper.New()
-	local.SetConfigName(fmt.Sprintf(".%s", appName))
-	local.SetConfigType("json")
-	local.AddConfigPath(workingDir)
-
-	// Merge local config if it exists
-	if err := local.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			// 配置文件存在但解析失败(如 JSON 损坏): 记录日志便于排查,
-			// 避免静默回退默认配置导致字体/主题等设置"不生效"。
-			logging.Warn("failed to read local config, using defaults",
-				"working_dir", workingDir,
-				"error", err)
-		}
-		return
-	}
-	viper.MergeConfigMap(local.AllSettings())
 }
 
 // applyDefaultValues sets default values for configuration fields that need processing.
