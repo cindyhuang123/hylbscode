@@ -43,6 +43,7 @@ func (f *fakeAgentService) Summarize(ctx context.Context, sessionID string) erro
 // silently dropping the keypress.
 func TestSendBlockedWhileStreaming(t *testing.T) {
 	test.NewApp()
+	config.SetLanguage(config.LangChinese)
 	core := &app.App{Messages: &fakeMessageService{}}
 	c := NewChatArea(core, context.Background())
 
@@ -50,7 +51,7 @@ func TestSendBlockedWhileStreaming(t *testing.T) {
 	c.Send()
 
 	seg := c.status.Segments[0].(*widget.TextSegment)
-	if seg.Text != "⏳ 正在应答中，请等应答完毕后再发送" {
+	if seg.Text != config.Tr().ChatBlocked {
 		t.Fatalf("expected blocked hint, got %q", seg.Text)
 	}
 }
@@ -84,12 +85,13 @@ func TestCancelResponse(t *testing.T) {
 // state after a response was aborted.
 func TestSetCancelledUI(t *testing.T) {
 	test.NewApp()
+	config.SetLanguage(config.LangChinese)
 	core := &app.App{Messages: &fakeMessageService{}}
 	c := NewChatArea(core, context.Background())
 
 	c.setCancelledUI()
 	seg := c.status.Segments[0].(*widget.TextSegment)
-	if seg.Text != "✖ 已取消" {
+	if seg.Text != config.Tr().ChatCancelled {
 		t.Fatalf("expected cancelled status, got %q", seg.Text)
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/message"
 )
 
@@ -192,6 +193,27 @@ func roleColor(role message.MessageRole) fyne.ThemeColorName {
 	}
 }
 
+// messageCopyText extracts the plain text of a message for clipboard copying.
+// Reasoning (thinking) is included so the user can save the full reply.
+func messageCopyText(m message.Message) string {
+	var b strings.Builder
+	for _, part := range m.Parts {
+		switch p := part.(type) {
+		case message.TextContent:
+			if t := ansi.Strip(p.Text); t != "" {
+				b.WriteString(t)
+				b.WriteString("\n\n")
+			}
+		case message.ReasoningContent:
+			if t := ansi.Strip(p.Thinking); t != "" {
+				b.WriteString(t)
+				b.WriteString("\n\n")
+			}
+		}
+	}
+	return strings.TrimSpace(b.String())
+}
+
 // renderMessage builds the canvas object for a stored message. ToolCall parts
 // reuse the matching live block from active (keyed by tool call ID) so a
 // running tool keeps streaming; used maps the consumed call IDs to their
@@ -208,10 +230,21 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 	case message.Tool:
 		style = fyne.TextStyle{Bold: true, Italic: true}
 	}
-	header := widget.NewRichText(&widget.TextSegment{
+	headerTxt := widget.NewRichText(&widget.TextSegment{
 		Text:  role,
 		Style: widget.RichTextStyle{ColorName: roleColor(m.Role), TextStyle: style},
 	})
+	// Assistant and user replies get a copy button: rich-text blocks are not
+	// selectable in Fyne, so copying the whole message is the reliable way out.
+	var header fyne.CanvasObject = headerTxt
+	if m.Role == message.Assistant || m.Role == message.User {
+		copyBtn := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+			if txt := messageCopyText(m); txt != "" {
+				fyne.CurrentApp().Clipboard().SetContent(txt)
+			}
+		})
+		header = container.NewBorder(nil, nil, nil, copyBtn, headerTxt)
+	}
 
 	body := container.NewVBox()
 	used := make(map[string]*ToolBlock)
@@ -327,9 +360,9 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 }
 
 func truncateAttachment(p message.BinaryContent) string {
-	label := fmt.Sprintf("📎 %s (%s)", p.MIMEType, humanBytes(len(p.Data)))
+	label := fmt.Sprintf(config.Tr().AttachmentMsg, p.MIMEType, humanBytes(len(p.Data)))
 	if p.Path != "" {
-		label = fmt.Sprintf("📎 %s (%s)", p.Path, humanBytes(len(p.Data)))
+		label = fmt.Sprintf(config.Tr().AttachmentMsg, p.Path, humanBytes(len(p.Data)))
 	}
 	if len(label) > maxInlineAttachmentLen {
 		return label[:maxInlineAttachmentLen] + "..."

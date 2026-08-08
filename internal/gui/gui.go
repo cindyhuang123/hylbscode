@@ -68,6 +68,9 @@ func NewMainWindow(fyneApp fyne.App, core *app.App, ctx context.Context) *MainWi
 	cfg := config.Get()
 	if w, h := cfg.GUI.Width, cfg.GUI.Height; w > 0 && h > 0 {
 		g.win.Resize(fyne.NewSize(float32(w), float32(h)))
+	} else if sz, ok := maximizedSize(); ok {
+		g.win.Resize(sz)
+		g.win.CenterOnScreen()
 	} else {
 		g.win.Resize(fyne.NewSize(1100, 720))
 	}

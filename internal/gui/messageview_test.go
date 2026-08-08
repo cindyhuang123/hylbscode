@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"strings"
 	"testing"
 
 	"fyne.io/fyne/v2/test"
@@ -22,8 +21,8 @@ func TestRenderMessageToolCallCreatesBlock(t *testing.T) {
 	if !ok {
 		t.Fatal("expected used map to contain call_1")
 	}
-	if got := block.TitleText(); !strings.HasPrefix(got, "⏳") {
-		t.Fatalf("expected running state title, got %q", got)
+	if got := block.TitleText(); got != "bash" {
+		t.Fatalf("expected running state title to be the tool name, got %q", got)
 	}
 	if block.output.Text == "" {
 		t.Fatal("expected input rendered in output")
@@ -74,8 +73,8 @@ func TestRenderMessageToolResultReusesLiveBlock(t *testing.T) {
 	if used["call_1"] != live {
 		t.Fatal("expected the live block to be reused")
 	}
-	if got := live.TitleText(); !strings.HasPrefix(got, "✗") {
-		t.Fatalf("expected error title, got %q", got)
+	if got := live.TitleText(); got != "bash" {
+		t.Fatalf("expected error title to be the tool name, got %q", got)
 	}
 	if live.output.Text == "" {
 		t.Fatal("expected result content to replace output")

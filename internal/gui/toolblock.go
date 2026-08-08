@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/cindyhuang123/hylbscode/internal/config"
 )
 
 // ToolBlock renders one tool invocation: a title line plus monospace output
@@ -52,7 +53,7 @@ func newToolBlock(name string, noOutput bool) *ToolBlock {
 		noOutput: noOutput,
 		maxLines: 10,
 		title: widget.NewRichText(&widget.TextSegment{
-			Text:  "⏳ " + name,
+			Text:  name,
 			Style: widget.RichTextStyle{ColorName: theme.ColorNameForeground, TextStyle: fyne.TextStyle{Bold: true}},
 		}),
 		output: widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true}),
@@ -64,7 +65,7 @@ func newToolBlock(name string, noOutput bool) *ToolBlock {
 	if name == "" {
 		t.title.Hide()
 	}
-	t.expandBtn = widget.NewButton("▼ 展开", t.toggleExpand)
+	t.expandBtn = widget.NewButton(config.Tr().Expand, t.toggleExpand)
 	t.expandBtn.Alignment = widget.ButtonAlignLeading
 	t.expandBtn.Hide()
 	t.outputBox = container.NewStack(t.outputRect, container.NewPadded(t.output))
@@ -98,7 +99,7 @@ func (t *ToolBlock) SetResult(name string, isError bool) {
 			}
 			t.title.Segments = []widget.RichTextSegment{
 				&widget.TextSegment{
-					Text:  "✓   " + name,
+					Text:  name,
 					Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess, TextStyle: fyne.TextStyle{}},
 				},
 			}
@@ -116,7 +117,7 @@ func (t *ToolBlock) SetResult(name string, isError bool) {
 	t.title.Show()
 	t.title.Segments = []widget.RichTextSegment{
 		&widget.TextSegment{
-			Text:  "✗ " + name,
+			Text:  name,
 			Style: widget.RichTextStyle{ColorName: theme.ColorNameError, TextStyle: fyne.TextStyle{Bold: true}},
 		},
 	}
@@ -143,11 +144,12 @@ func (t *ToolBlock) SetOutput(text string) {
 }
 
 func (t *ToolBlock) toggleExpand() {
+	tr := config.Tr()
 	t.expanded = !t.expanded
 	if t.expanded {
-		t.expandBtn.SetText("▲ 收起")
+		t.expandBtn.SetText(tr.Collapse)
 	} else {
-		t.expandBtn.SetText("▼ 展开")
+		t.expandBtn.SetText(tr.Expand)
 	}
 	t.refreshOutput()
 }
@@ -160,7 +162,7 @@ func (t *ToolBlock) refreshOutput() {
 	}
 	if t.expanded {
 		t.output.SetText(full)
-		t.expandBtn.SetText("▲ 收起")
+		t.expandBtn.SetText(config.Tr().Collapse)
 		t.expandBtn.Show()
 		return
 	}
@@ -172,7 +174,7 @@ func (t *ToolBlock) refreshOutput() {
 	}
 	truncated := strings.Join(lines[:t.maxLines], "\n") + "\n..."
 	t.output.SetText(truncated)
-	t.expandBtn.SetText("▼ 展开")
+	t.expandBtn.SetText(config.Tr().Expand)
 	t.expandBtn.Show()
 }
 

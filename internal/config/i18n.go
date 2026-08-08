@@ -127,6 +127,16 @@ type Translation struct {
 	GUIDone               string
 	GUIDismiss            string
 
+	// GUI status line / tool block.
+	ChatStreaming   string
+	ChatDone        string
+	ChatBlocked     string
+	ChatCancelled   string
+	ChatErrorPrefix string
+	Expand          string
+	Collapse        string
+	AttachmentMsg   string
+
 	// GUI help.
 	GUIHelpMenu       string
 	GUIHelpShortcuts  string
@@ -267,6 +277,15 @@ var (
 			GUIHistoryNav:     "Recall sent messages",
 			GUIScrollOutput:   "Scroll output to top/bottom",
 
+			ChatStreaming:   "Responding...",
+			ChatDone:        "Done",
+			ChatBlocked:     "Still responding, please wait before sending",
+			ChatCancelled:   "Cancelled",
+			ChatErrorPrefix: "Request failed: ",
+			Expand:          "Expand",
+			Collapse:        "Collapse",
+			AttachmentMsg:   "Attachment %s (%s)",
+
 			GUIProviderMenu:    "Configure Provider",
 			GUIProviderTitle:   "LLM Provider",
 			GUIProviderMissing: "No LLM provider credentials detected.",
@@ -393,6 +412,15 @@ var (
 			GUICancelResponse: "取消应答",
 			GUIHistoryNav:     "翻看已发送消息",
 			GUIScrollOutput:   "输出区滚动到顶部/底部",
+
+			ChatStreaming:   "正在应答...",
+			ChatDone:        "应答完毕",
+			ChatBlocked:     "正在应答中，请等应答完毕后再发送",
+			ChatCancelled:   "已取消",
+			ChatErrorPrefix: "请求失败：",
+			Expand:          "展开",
+			Collapse:        "收起",
+			AttachmentMsg:   "附件 %s (%s)",
 
 			GUIProviderMenu:    "配置服务商",
 			GUIProviderTitle:   "LLM 服务商",

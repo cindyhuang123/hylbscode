@@ -18,6 +18,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/cindyhuang123/hylbscode/internal/app"
+	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/llm/agent"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
 	"github.com/cindyhuang123/hylbscode/internal/message"
@@ -85,7 +86,7 @@ func (c *ChatArea) FocusInput() {
 }
 
 func (c *ChatArea) Content() fyne.CanvasObject {
-	attachBtn := widget.NewButton("📎", c.PickAttachment)
+	attachBtn := widget.NewButton(config.Tr().GUIAttachFile, c.PickAttachment)
 	attachRow := container.NewHBox(attachBtn, c.attachLabel)
 	inputBox := container.NewBorder(nil, nil, attachRow, nil, c.input)
 	bottom := container.NewVBox(c.status, inputBox)
@@ -96,14 +97,15 @@ func (c *ChatArea) Content() fyne.CanvasObject {
 // the message list and the input, so the user can tell whether the assistant
 // is still responding or has finished.
 func (c *ChatArea) setStreamingUI(streaming bool) {
+	tr := config.Tr()
 	if streaming {
 		c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
-			Text:  "⏳ 正在应答…",
+			Text:  tr.ChatStreaming,
 			Style: widget.RichTextStyle{ColorName: theme.ColorNamePrimary, TextStyle: fyne.TextStyle{Bold: true}},
 		}}
 	} else {
 		c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
-			Text:  "✔ 应答完毕",
+			Text:  tr.ChatDone,
 			Style: widget.RichTextStyle{ColorName: theme.ColorNameDisabled},
 		}}
 	}
@@ -115,7 +117,7 @@ func (c *ChatArea) setStreamingUI(streaming bool) {
 // nothing typed is lost.
 func (c *ChatArea) showBlockedHint() {
 	c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
-		Text:  "⏳ 正在应答中，请等应答完毕后再发送",
+		Text:  config.Tr().ChatBlocked,
 		Style: widget.RichTextStyle{ColorName: theme.ColorNamePrimary, TextStyle: fyne.TextStyle{Bold: true}},
 	}}
 	c.status.Refresh()
@@ -124,7 +126,7 @@ func (c *ChatArea) showBlockedHint() {
 // setCancelledUI marks the status line to show the response was cancelled.
 func (c *ChatArea) setCancelledUI() {
 	c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
-		Text:  "✖ 已取消",
+		Text:  config.Tr().ChatCancelled,
 		Style: widget.RichTextStyle{ColorName: theme.ColorNameWarning, TextStyle: fyne.TextStyle{Bold: true}},
 	}}
 	c.status.Refresh()
@@ -133,7 +135,7 @@ func (c *ChatArea) setCancelledUI() {
 // setErrorUI marks the status line to show a failed request.
 func (c *ChatArea) setErrorUI(msg string) {
 	c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
-		Text:  "✖ 请求失败：" + msg,
+		Text:  config.Tr().ChatErrorPrefix + msg,
 		Style: widget.RichTextStyle{ColorName: theme.ColorNameError, TextStyle: fyne.TextStyle{Bold: true}},
 	}}
 	c.status.Refresh()
@@ -148,13 +150,13 @@ func (c *ChatArea) showError(err error) {
 	}
 	msg := err.Error()
 	if len(msg) > 300 {
-		msg = msg[:300] + "…"
+		msg = msg[:300] + "..."
 	}
 	logging.Warn("chatarea: agent error", "error", err)
 	c.errState.Store(true)
 	c.errMsg = msg
 	fyne.Do(func() {
-		label := widget.NewLabel("❌ " + msg)
+		label := widget.NewLabel(msg)
 		label.Wrapping = fyne.TextWrapWord
 		label.TextStyle = fyne.TextStyle{Bold: true}
 		c.output.Add(label)

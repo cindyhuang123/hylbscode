@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/cindyhuang123/hylbscode/internal/app"
+	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/message"
 	"github.com/cindyhuang123/hylbscode/internal/pubsub"
 )
@@ -179,18 +180,19 @@ func TestRenderNowRedrawsDirtyMessage(t *testing.T) {
 // streaming and finished states as the agent runs and completes.
 func TestSetStreamingUI(t *testing.T) {
 	test.NewApp()
+	config.SetLanguage(config.LangChinese)
 	core := &app.App{Messages: &fakeMessageService{}}
 	c := NewChatArea(core, context.Background())
 
 	c.setStreamingUI(true)
 	seg := c.status.Segments[0].(*widget.TextSegment)
-	if seg.Text != "⏳ 正在应答…" {
+	if seg.Text != config.Tr().ChatStreaming {
 		t.Fatalf("expected streaming status, got %q", seg.Text)
 	}
 
 	c.setStreamingUI(false)
 	seg = c.status.Segments[0].(*widget.TextSegment)
-	if seg.Text != "✔ 应答完毕" {
+	if seg.Text != config.Tr().ChatDone {
 		t.Fatalf("expected done status, got %q", seg.Text)
 	}
 }
