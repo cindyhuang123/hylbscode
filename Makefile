@@ -45,12 +45,26 @@ endif
 
 .PHONY: build run run-debug test schema clean deps
 
-# 按发行版安装编译依赖（需要 root）。
+# 按发行版安装缺失的编译依赖（需要 root）。已安装的包跳过，只装缺失项。
 deps:
 	@if [ "$(DISTRO)" = "fedora" ]; then \
-		sudo dnf install -y $(FEDORA_DEPS); \
+		MISSING=""; \
+		for p in $(FEDORA_DEPS); do rpm -q $$p >/dev/null 2>&1 || MISSING="$$MISSING $$p"; done; \
+		if [ -z "$$MISSING" ]; then \
+			echo "所有 Fedora 依赖已安装，无需操作"; \
+		else \
+			echo "安装缺失依赖:$$MISSING"; \
+			sudo dnf install -y $$MISSING; \
+		fi; \
 	elif [ "$(DISTRO)" = "ubuntu" ] || [ "$(DISTRO)" = "debian" ]; then \
-		sudo apt-get install -y $(UBUNTU_DEPS); \
+		MISSING=""; \
+		for p in $(UBUNTU_DEPS); do dpkg -s $$p >/dev/null 2>&1 || MISSING="$$MISSING $$p"; done; \
+		if [ -z "$$MISSING" ]; then \
+			echo "所有 Ubuntu 依赖已安装，无需操作"; \
+		else \
+			echo "安装缺失依赖:$$MISSING"; \
+			sudo apt-get install -y $$MISSING; \
+		fi; \
 	else \
 		echo "未识别的发行版: $(DISTRO)，请手动安装以下包:"; \
 		echo "  Fedora: $(FEDORA_DEPS)"; \
