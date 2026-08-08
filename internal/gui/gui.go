@@ -292,9 +292,16 @@ func (g *MainWindow) showSessionPicker() {
 }
 
 // requestQuit asks for confirmation before quitting (used by the Quit menu
-// item, Ctrl+Q, and the window close button).
+// item, Ctrl+Q, and the window close button). Whether the confirmation dialog
+// appears is controlled by the confirmQuit GUI config: nil/true shows it,
+// false quits immediately.
 func (g *MainWindow) requestQuit() {
-	logging.Info("menu: request quit")
+	logging.Info("request quit")
+	cfg := config.Get()
+	if cfg.GUI.ConfirmQuit != nil && !*cfg.GUI.ConfirmQuit {
+		g.fyneApp.Quit()
+		return
+	}
 	tr := config.Tr()
 	dialog.ShowConfirm(tr.QuitQuestion, "", func(ok bool) {
 		if ok {

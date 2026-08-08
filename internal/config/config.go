@@ -80,11 +80,12 @@ type TUIConfig struct {
 
 // GUIConfig defines the configuration for the Fyne desktop interface.
 type GUIConfig struct {
-	Theme   string  `json:"theme,omitempty"` // "auto", "light", or "dark"
-	Width   int     `json:"width,omitempty"`
-	Height  int     `json:"height,omitempty"`
-	CnyRate float64 `json:"cnyRate,omitempty"` // USD -> CNY rate for cost display
-	Font    string  `json:"font,omitempty"`    // ttf/otf font file path overriding the built-in UI font
+	Theme       string  `json:"theme,omitempty"` // "auto", "light", or "dark"
+	Width       int     `json:"width,omitempty"`
+	Height      int     `json:"height,omitempty"`
+	CnyRate     float64 `json:"cnyRate,omitempty"`     // USD -> CNY rate for cost display
+	Font        string  `json:"font,omitempty"`        // ttf/otf font file path overriding the built-in UI font
+	ConfirmQuit *bool   `json:"confirmQuit,omitempty"` // 关闭窗口前是否弹确认; nil 表示默认确认
 }
 
 // ShellConfig defines the configuration for the shell used by the bash tool.
