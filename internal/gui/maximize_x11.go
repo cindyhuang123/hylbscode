@@ -9,10 +9,31 @@ import (
 	"github.com/cindyhuang123/hylbscode/internal/logging"
 )
 
-// maximizedSize returns a near-fullscreen size for the primary monitor,
-// because Fyne has no window maximize API. A margin keeps the window inside
-// the desktop work area (title bar / taskbar). Falls back to the caller's
-// default size when the monitor cannot be queried.
+// maximizeWindowNow performs a real system-level maximize (identical to
+// clicking the window's maximize button) on the current GLFW context, which is
+// the Fyne window when run on the UI thread. Fyne has no maximize API, so this
+// goes through GLFW directly. Returns false when the window cannot be found.
+func maximizeWindowNow() (ok bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			logging.Warn("maximize failed, falling back to sized window", "err", r)
+			ok = false
+		}
+	}()
+	if err := glfw.Init(); err != nil {
+		return false
+	}
+	w := glfw.GetCurrentContext()
+	if w == nil {
+		return false
+	}
+	w.Maximize()
+	return true
+}
+
+// maximizedSize returns a near-fullscreen size for the primary monitor, used
+// as a fallback when the GLFW window handle is unavailable. A margin keeps the
+// window inside the desktop work area (title bar / taskbar).
 func maximizedSize() (fyne.Size, bool) {
 	defer func() {
 		if r := recover(); r != nil {

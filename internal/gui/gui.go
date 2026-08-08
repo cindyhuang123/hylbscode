@@ -68,9 +68,6 @@ func NewMainWindow(fyneApp fyne.App, core *app.App, ctx context.Context) *MainWi
 	cfg := config.Get()
 	if w, h := cfg.GUI.Width, cfg.GUI.Height; w > 0 && h > 0 {
 		g.win.Resize(fyne.NewSize(float32(w), float32(h)))
-	} else if sz, ok := maximizedSize(); ok {
-		g.win.Resize(sz)
-		g.win.CenterOnScreen()
 	} else {
 		g.win.Resize(fyne.NewSize(1100, 720))
 	}
@@ -379,6 +376,19 @@ func (g *MainWindow) toggleRightBar() {
 
 func (g *MainWindow) Show() {
 	g.win.Show()
+	cfg := config.Get()
+	// 未配置自定义窗口尺寸时, 启动后做一次系统级最大化(等价于点窗口右上角
+	// 最大化按钮); GLFW 句柄取不到时退回按屏幕尺寸铺满。
+	if cfg.GUI.Width <= 0 || cfg.GUI.Height <= 0 {
+		fyne.Do(func() {
+			if !maximizeWindowNow() {
+				if sz, ok := maximizedSize(); ok {
+					g.win.Resize(sz)
+					g.win.CenterOnScreen()
+				}
+			}
+		})
+	}
 	g.chat.FocusInput()
 }
 

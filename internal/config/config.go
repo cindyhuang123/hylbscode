@@ -256,8 +256,6 @@ func setDefaults(debug bool) {
 	viper.SetDefault("contextPaths", defaultContextPaths)
 	viper.SetDefault("tui.theme", "hylbscode")
 	viper.SetDefault("gui.theme", "auto")
-	viper.SetDefault("gui.width", 1100)
-	viper.SetDefault("gui.height", 720)
 	viper.SetDefault("gui.cnyRate", 7.2)
 	viper.SetDefault("autoCompact", true)
 	viper.SetDefault("autoCompactThreshold", 0.7)
@@ -1023,6 +1021,18 @@ func UpdateGUITheme(themeName string) error {
 	cfg.GUI.Theme = themeName
 	return updateCfgFile(func(config *Config) {
 		config.GUI.Theme = themeName
+	})
+}
+
+// UpdateGUIConfirmQuit persists whether closing the window asks for
+// confirmation (nil means the default: confirm).
+func UpdateGUIConfirmQuit(confirm bool) error {
+	if cfg == nil {
+		return fmt.Errorf("config not loaded")
+	}
+	cfg.GUI.ConfirmQuit = &confirm
+	return updateCfgFile(func(config *Config) {
+		config.GUI.ConfirmQuit = &confirm
 	})
 }
 

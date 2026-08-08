@@ -95,6 +95,7 @@ type Translation struct {
 	GUIFileMenu       string
 	GUISettingsItem   string
 	GUIQuitItem       string
+	GUIConfirmQuit    string
 	GUIThemeMenu      string
 	GUIThemeAuto      string
 	GUIThemeLight     string
@@ -239,6 +240,7 @@ var (
 			GUIFileMenu:       "File",
 			GUISettingsItem:   "Settings",
 			GUIQuitItem:       "Quit",
+			GUIConfirmQuit:    "Ask for confirmation when closing the window",
 			GUIThemeMenu:      "Theme",
 			GUIThemeAuto:      "Auto",
 			GUIThemeLight:     "Light",
@@ -375,6 +377,7 @@ var (
 			GUIFileMenu:       "文件",
 			GUISettingsItem:   "设置",
 			GUIQuitItem:       "退出",
+			GUIConfirmQuit:    "关闭窗口时询问是否确认",
 			GUIThemeMenu:      "主题",
 			GUIThemeAuto:      "自动",
 			GUIThemeLight:     "浅色",

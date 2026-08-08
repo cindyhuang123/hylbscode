@@ -135,6 +135,13 @@ func (g *MainWindow) applyTheme(sel string) {
 	g.themeMenu.Refresh()
 }
 
+// confirmQuitChecked reports whether closing the window should ask for
+// confirmation; a nil config value means the default (confirm).
+func confirmQuitChecked() bool {
+	cfg := config.Get()
+	return cfg.GUI.ConfirmQuit == nil || *cfg.GUI.ConfirmQuit
+}
+
 // Menu builds the main menu for the window.
 func (g *MainWindow) Menu() *fyne.MainMenu {
 	tr := config.Tr()
@@ -144,7 +151,21 @@ func (g *MainWindow) Menu() *fyne.MainMenu {
 	providerCfg := fyne.NewMenuItem(tr.GUIProviderMenu, g.ShowProviderSetup)
 	quit := fyne.NewMenuItem(tr.GUIQuitItem, g.requestQuit)
 	quit.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyQ, Modifier: fyne.KeyModifierControl}
-	file := fyne.NewMenu(tr.GUIFileMenu, settings, providerCfg, quit)
+
+	// 关闭窗口时是否弹确认: 勾选菜单项, 与 Quit 放同一菜单。
+	var file *fyne.Menu
+	var confirmQuitItem *fyne.MenuItem
+	confirmQuitItem = fyne.NewMenuItem(tr.GUIConfirmQuit, func() {
+		next := !confirmQuitItem.Checked
+		if err := config.UpdateGUIConfirmQuit(next); err != nil {
+			logging.Error("failed to update confirmQuit: %v", err)
+			return
+		}
+		confirmQuitItem.Checked = next
+		file.Refresh()
+	})
+	confirmQuitItem.Checked = confirmQuitChecked()
+	file = fyne.NewMenu(tr.GUIFileMenu, settings, providerCfg, confirmQuitItem, quit)
 
 	g.themeAuto = fyne.NewMenuItem(tr.GUIThemeAuto, func() { g.applyTheme("auto") })
 	g.themeLight = fyne.NewMenuItem(tr.GUIThemeLight, func() { g.applyTheme("light") })
