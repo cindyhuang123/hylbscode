@@ -101,6 +101,8 @@ func (g *MainWindow) ShowSettings() {
 		if ok && selectedModel != "" {
 			if err := config.UpdateAgentModel(config.AgentCoder, selectedModel); err != nil {
 				logging.Error("failed to update agent model: %v", err)
+			} else {
+				g.refreshStatus()
 			}
 		}
 	}, g.win)

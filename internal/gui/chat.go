@@ -36,6 +36,8 @@ type ChatArea struct {
 
 	streaming   atomic.Bool
 	cancelled   atomic.Bool
+	errState    atomic.Bool
+	errMsg      string
 	cancelFunc  context.CancelFunc
 	onSessionID func(string)
 	onSetup     func()
@@ -126,6 +128,39 @@ func (c *ChatArea) setCancelledUI() {
 		Style: widget.RichTextStyle{ColorName: theme.ColorNameWarning, TextStyle: fyne.TextStyle{Bold: true}},
 	}}
 	c.status.Refresh()
+}
+
+// setErrorUI marks the status line to show a failed request.
+func (c *ChatArea) setErrorUI(msg string) {
+	c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
+		Text:  "✖ 请求失败：" + msg,
+		Style: widget.RichTextStyle{ColorName: theme.ColorNameError, TextStyle: fyne.TextStyle{Bold: true}},
+	}}
+	c.status.Refresh()
+}
+
+// showError surfaces a failed agent request to the user: a red error banner in
+// the message list plus a warning status line, so failures like an invalid API
+// key are visible instead of silently disappearing into the log.
+func (c *ChatArea) showError(err error) {
+	if err == nil {
+		return
+	}
+	msg := err.Error()
+	if len(msg) > 300 {
+		msg = msg[:300] + "…"
+	}
+	logging.Warn("chatarea: agent error", "error", err)
+	c.errState.Store(true)
+	c.errMsg = msg
+	fyne.Do(func() {
+		label := widget.NewLabel("❌ " + msg)
+		label.Wrapping = fyne.TextWrapWord
+		label.TextStyle = fyne.TextStyle{Bold: true}
+		c.output.Add(label)
+		c.scroll.ScrollToBottom()
+		c.setErrorUI(msg)
+	})
 }
 
 // CancelResponse aborts the running agent response, if any. It is wired to the
@@ -344,6 +379,8 @@ func (c *ChatArea) SetOnSessionCreated(fn func(string)) {
 func (c *ChatArea) SetCurrent(sessionID string) {
 	logging.Info("chatarea: switch session", "from", c.current, "to", sessionID)
 	c.current = sessionID
+	c.errState.Store(false)
+	c.errMsg = ""
 	// Drop tool blocks from the previous session so a re-render does not
 	// re-attach stale blocks (e.g. git output) to the new session's view.
 	c.toolMu.Lock()
@@ -445,6 +482,8 @@ func (c *ChatArea) Send() {
 		defer fyne.Do(func() {
 			if c.cancelled.Load() {
 				c.setCancelledUI()
+			} else if c.errState.Load() {
+				c.setErrorUI(c.errMsg)
 			} else {
 				c.setStreamingUI(false)
 			}
@@ -473,6 +512,10 @@ func (c *ChatArea) OnMessageEvent(ev pubsub.Event[message.Message]) {
 
 func (c *ChatArea) OnAgentEvent(ev pubsub.Event[agent.AgentEvent]) {
 	e := ev.Payload
+	if e.Type == agent.AgentEventTypeError {
+		c.showError(e.Error)
+		return
+	}
 	if e.Type == agent.AgentEventTypeResponse && e.Done {
 		// Rebuild every view from the final message state, exactly like
 		// switching away and back to the session: the streaming render only
