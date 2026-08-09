@@ -127,19 +127,22 @@ func (t *ToolBlock) SetResult(name string, isError bool) {
 	t.outputRect.Refresh()
 }
 
-// AppendOutput strips ANSI escapes and appends a chunk to the output.
+// AppendOutput appends a chunk to the output. The raw chunk is accumulated
+// as-is: ANSI escapes may be split across chunks when streaming, so stripping
+// must happen on the whole accumulated text (see refreshOutput) instead of per
+// chunk, otherwise a half escape sequence leaks through as mojibake.
 func (t *ToolBlock) AppendOutput(text string) {
 	if text == "" {
 		return
 	}
-	t.outputText.WriteString(ansi.Strip(text))
+	t.outputText.WriteString(text)
 	t.refreshOutput()
 }
 
 // SetOutput replaces the output content with a single monospace block.
 func (t *ToolBlock) SetOutput(text string) {
 	t.outputText.Reset()
-	t.outputText.WriteString(ansi.Strip(text))
+	t.outputText.WriteString(text)
 	t.refreshOutput()
 }
 
@@ -154,8 +157,14 @@ func (t *ToolBlock) toggleExpand() {
 	t.refreshOutput()
 }
 
+// cleanOutput strips ANSI escapes from the whole accumulated output and drops
+// carriage returns (progress-bar overwrites) that Fyne cannot render.
+func cleanOutput(raw string) string {
+	return strings.ReplaceAll(ansi.Strip(raw), "\r", "")
+}
+
 func (t *ToolBlock) refreshOutput() {
-	full := t.outputText.String()
+	full := cleanOutput(t.outputText.String())
 	if t.maxLines <= 0 {
 		t.output.SetText(full)
 		return
