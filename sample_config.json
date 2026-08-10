@@ -1,4 +1,3 @@
-.hylbscode.json 
 {
   "data": {},
   "providers": {
@@ -40,7 +39,23 @@
   },
   "gui": {
     "theme": "dark",
-    "font": "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf"
+    "confirmQuit": true
   },
+  "contextPaths": [
+    "CLAUDE.md",
+    "hylbscode.md",
+    "HyLbsCode.md",
+    "skills/coding/Skill.md",
+    "skills/planning/Skill.md",
+    "skills/reporting/Skill.md",
+    "skills/research/Skill.md",
+    "skills/documentation/Skill.md",
+    "skills/presentation/Skill.md",
+    "skills/meeting-notes/Skill.md",
+    "skills/knowledge/Skill.md",
+    "skills/decision/Skill.md",
+    "skills/learning/Skill.md",
+    "skills/exploration/Skill.md"
+  ],
   "shell": {}
 }
