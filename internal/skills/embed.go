@@ -4,6 +4,8 @@ import (
 	"embed"
 	"os"
 	"path/filepath"
+
+	"github.com/cindyhuang123/hylbscode/internal/logging"
 )
 
 //go:embed data
@@ -15,6 +17,7 @@ var embeddedData embed.FS
 // 返回 nil 表示技能库已就绪（存在或生成成功）。
 func EnsureDefault(baseDir string) error {
 	if _, err := os.Stat(baseDir); err == nil {
+		logging.Debug("skills directory already exists, skipping generation", "dir", baseDir)
 		return nil
 	} else if !os.IsNotExist(err) {
 		return err
@@ -24,6 +27,7 @@ func EnsureDefault(baseDir string) error {
 	if err != nil {
 		return err
 	}
+	generated := 0
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -39,6 +43,8 @@ func EnsureDefault(baseDir string) error {
 		if err := os.WriteFile(filepath.Join(catDir, "Skill.md"), content, 0o644); err != nil {
 			return err
 		}
+		generated++
 	}
+	logging.InfoPersist("generated default skills directory", "dir", baseDir, "categories", generated)
 	return nil
 }
