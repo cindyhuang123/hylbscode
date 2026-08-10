@@ -19,6 +19,7 @@ import (
 	"github.com/cindyhuang123/hylbscode/internal/db"
 	"github.com/cindyhuang123/hylbscode/internal/gui"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
+	"github.com/cindyhuang123/hylbscode/internal/skills"
 )
 
 func fatal(format string, args ...any) {
@@ -60,6 +61,12 @@ func main() {
 	if !config.HasProviderCredentials() {
 		fmt.Fprintln(os.Stderr, "warning: no LLM provider credentials detected in environment variables.")
 		fmt.Fprintln(os.Stderr, "  (providers configured in the config file are still honored)")
+	}
+
+	// 内置技能库按需加载：工作目录还没有 skills/ 时，用内置模板自动生成一份；
+	// 已存在（用户自定义）则原样保留。
+	if err := skills.EnsureDefault(filepath.Join(cfg.WorkingDir, "skills")); err != nil {
+		logging.WarnPersist(fmt.Sprintf("failed to ensure default skills directory: %v", err))
 	}
 
 	conn, err := db.Connect()

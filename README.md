@@ -13,7 +13,7 @@ HyLbsCode 是一个本地优先的 AI 编程助手桌面应用：三栏布局（
 - **LSP 集成** — 诊断、代码导航、文件监听
 - **本地存储** — SQLite，会话支持父子层级与全文搜索
 - **文件版本历史** — 基于数据库按会话管理
-- **技能库（Skills）** — 内置多类技能，按触发词自动套用工作流
+- **技能库（Skills）** — 内置多类技能，技能目录常驻、`read_skill` 按需加载完整工作流
 - **中英双语界面** — 菜单切换语言，即时生效
 - **窗口默认最大化** — 启动即系统级最大化（未配置自定义尺寸时）
 - **退出确认** — 文件菜单可勾选关闭窗口是否弹确认
@@ -59,7 +59,7 @@ make build             # 构建（需要 CGO：gcc + X11/Wayland 开发库）
 | `autoCompact` | 接近上下文窗口时自动摘要（默认 true） |
 | `shell` | bash 工具的 shell 路径/参数 |
 | `mcpServers` | MCP 服务器定义（stdio 或 sse） |
-| `contextPaths` | 注入到提示词的项目说明/技能文件列表；缺省时用内置默认列表（含 `CLAUDE.md` 等指令文件与全部 `skills/*/Skill.md`） |
+| `contextPaths` | 注入到提示词的项目说明/指令文件列表；缺省时用内置默认列表（`CLAUDE.md`、`hylbscode.md` 等约定文件名） |
 | `lsp` | LSP 客户端配置（按语言键名，如 `gopls`） |
 | `gui.theme` | `auto` / `light` / `dark` |
 | `gui.width` / `gui.height` | 显式指定窗口尺寸；留空则启动时系统级最大化 |
@@ -71,7 +71,7 @@ make build             # 构建（需要 CGO：gcc + X11/Wayland 开发库）
 
 ## 技能（Skills）
 
-`skills/<类别>/Skill.md` 是 hylbscode 的技能定义，每条包含 YAML frontmatter（`name` + `description` 触发词）与中文正文（流程 / 模板 / 禁止项）。技能文件会随 `contextPaths` 注入模型上下文，当用户请求命中触发词时，模型套用对应工作流。
+`skills/<类别>/Skill.md` 是技能定义（**工作目录**下的 `skills/`），每条包含 YAML frontmatter（`name` + `description` 触发词）与中文正文（流程 / 模板 / 禁止项）。在**没有** `skills/` 的新目录打开 hylbscode 时，会自动用内置模板（`internal/skills/data/`，随二进制嵌入）生成完整技能库；已存在则原样保留，用户可自由增删类别。技能采用**按需加载**：启动时只把技能目录（名称 + 一句话说明 + 触发词）注入模型上下文；当用户请求命中某技能触发词时，模型调用 `read_skill` 工具加载对应完整指令再执行，避免一次性塞满上下文。
 
 内置类别：
 
@@ -89,7 +89,7 @@ make build             # 构建（需要 CGO：gcc + X11/Wayland 开发库）
 | `learning` | 快速上手新领域，最小闭环 |
 | `exploration` | 无经验/无参考的未知领域探索 |
 
-新增一个类别只需在 `skills/` 下新建目录并放一个 `Skill.md`，再把路径加入 `contextPaths`（或 `sample_config.json` 同步示例）。
+新增一个类别只需在 `skills/` 下新建目录并放一个 `Skill.md`（frontmatter 带 `name` 与 `description`），启动扫描后会自动出现在技能目录中，无需改配置。
 
 ## 开发
 
@@ -115,10 +115,12 @@ internal/
   message/             # 消息模型、CRUD、内容部件
   pubsub/              # 通用发布/订阅代理（泛型，基于 channel）
   session/             # 会话 CRUD（对话，支持父子层级）
+  skills/              # 技能库内置模板（go:embed 嵌入二进制）+ 扫描/按需加载逻辑
   todo/                # Todo CRUD
   version/             # 版本号（构建时注入）
-skills/                # 技能库（skills/<类别>/Skill.md）
 ```
+
+`skills/`（工作目录下）是运行时技能库：在**没有** `skills/` 的新目录打开 hylbscode 时会自动用内置模板生成一份；已存在则原样保留（用户可自行增删、扩展类别）。
 
 服务间通过 pubsub 事件桥接：service → pubsub broker → channel → bridge goroutine → `fyne.Do()` → widget 更新。
 

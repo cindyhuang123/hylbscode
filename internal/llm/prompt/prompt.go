@@ -28,11 +28,21 @@ func GetAgentPrompt(agentName config.AgentName, provider models.ModelProvider) s
 	}
 
 	if agentName == config.AgentCoder || agentName == config.AgentTask {
+		// 常驻技能目录（完整技能内容由模型按需用 read_skill 加载）
+		skillIndex := BuildSkillIndex()
 		// Add context from project-specific instruction files if they exist
 		contextContent := getContextFromPaths()
 		logging.Debug("Context content", "Context", contextContent)
+		logging.Debug("Skill index", "Skills", skillIndex)
+		var parts []string
+		if skillIndex != "" {
+			parts = append(parts, skillIndex)
+		}
 		if contextContent != "" {
-			return fmt.Sprintf("%s\n\n# Project-Specific Context\n Make sure to follow the instructions in the context below\n%s", basePrompt, contextContent)
+			parts = append(parts, "# Project-Specific Context\n Make sure to follow the instructions in the context below\n"+contextContent)
+		}
+		if len(parts) > 0 {
+			return fmt.Sprintf("%s\n\n%s", basePrompt, strings.Join(parts, "\n\n"))
 		}
 	}
 	return basePrompt

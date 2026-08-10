@@ -350,7 +350,7 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 		default:
 			// Continue processing
 		}
-		agentMessage, toolResults, err := a.streamAndHandleEvents(ctx, sessionID, msgHistory)
+		agentMessage, toolResults, err := a.streamAndHandleEvents(ctx, sessionID, msgHistory, a.tools)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				agentMessage.AddFinish(message.FinishReasonCanceled)
@@ -388,9 +388,9 @@ func (a *agent) createUserMessage(ctx context.Context, sessionID, content string
 	})
 }
 
-func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msgHistory []message.Message) (message.Message, *message.Message, error) {
+func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msgHistory []message.Message, toolsList []tools.BaseTool) (message.Message, *message.Message, error) {
 	ctx = context.WithValue(ctx, tools.SessionIDContextKey, sessionID)
-	eventChan := a.provider.StreamResponse(ctx, msgHistory, a.tools)
+	eventChan := a.provider.StreamResponse(ctx, msgHistory, toolsList)
 
 	assistantMsg, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
 		Role:  message.Assistant,
@@ -422,77 +422,57 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 
 	toolResults := make([]message.ToolResult, len(assistantMsg.ToolCalls()))
 	toolCalls := assistantMsg.ToolCalls()
-	for i, toolCall := range toolCalls {
-		select {
-		case <-ctx.Done():
-			a.finishMessage(context.Background(), &assistantMsg, message.FinishReasonCanceled)
-			// Make all future tool calls cancelled
-			for j := i; j < len(toolCalls); j++ {
-				toolResults[j] = message.ToolResult{
-					ToolCallID: toolCalls[j].ID,
-					Content:    "Tool execution canceled by user",
-					IsError:    true,
+	if parallelSafeToolCalls(toolCalls) {
+		// Read-only calls (glob/grep/ls) have no ordering or permission
+		// dependencies, so run them concurrently to cut turn latency.
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		for i, toolCall := range toolCalls {
+			wg.Add(1)
+			go func(i int, toolCall message.ToolCall) {
+				defer wg.Done()
+				var res message.ToolResult
+				select {
+				case <-ctx.Done():
+					res = message.ToolResult{ToolCallID: toolCall.ID, Content: "Tool execution canceled by user", IsError: true}
+				default:
+					res, _ = a.runOneTool(ctx, toolCall, toolsList)
 				}
-			}
-			goto out
-		default:
-			// Continue processing
-			var tool tools.BaseTool
-			for _, availableTool := range a.tools {
-				if availableTool.Info().Name == toolCall.Name {
-					tool = availableTool
-					break
-				}
-				// Monkey patch for Copilot Sonnet-4 tool repetition obfuscation
-				// if strings.HasPrefix(toolCall.Name, availableTool.Info().Name) &&
-				// 	strings.HasPrefix(toolCall.Name, availableTool.Info().Name+availableTool.Info().Name) {
-				// 	tool = availableTool
-				// 	break
-				// }
-			}
-
-			// Tool not found
-			if tool == nil {
-				toolResults[i] = message.ToolResult{
-					ToolCallID: toolCall.ID,
-					Content:    fmt.Sprintf("Tool not found: %s", toolCall.Name),
-					IsError:    true,
-				}
-				continue
-			}
-			a.publishToolEvent(toolCall.Name, true)
-			runCtx := context.WithValue(ctx, tools.StreamCallbackKey, tools.StreamOutputFunc(func(chunk string) {
-				a.publishToolStream(toolCall.ID, chunk)
-			}))
-			toolResult, toolErr := tool.Run(runCtx, tools.ToolCall{
-				ID:    toolCall.ID,
-				Name:  toolCall.Name,
-				Input: toolCall.Input,
-			})
-			a.publishToolEvent(toolCall.Name, false)
-			if toolErr != nil {
-				if errors.Is(toolErr, permission.ErrorPermissionDenied) {
-					toolResults[i] = message.ToolResult{
-						ToolCallID: toolCall.ID,
-						Content:    "Permission denied",
+				mu.Lock()
+				toolResults[i] = res
+				mu.Unlock()
+			}(i, toolCall)
+		}
+		wg.Wait()
+	} else {
+		for i, toolCall := range toolCalls {
+			select {
+			case <-ctx.Done():
+				a.finishMessage(context.Background(), &assistantMsg, message.FinishReasonCanceled)
+				// Make all future tool calls cancelled
+				for j := i; j < len(toolCalls); j++ {
+					toolResults[j] = message.ToolResult{
+						ToolCallID: toolCalls[j].ID,
+						Content:    "Tool execution canceled by user",
 						IsError:    true,
 					}
-					for j := i + 1; j < len(toolCalls); j++ {
-						toolResults[j] = message.ToolResult{
-							ToolCallID: toolCalls[j].ID,
-							Content:    "Tool execution canceled by user",
-							IsError:    true,
-						}
-					}
-					a.finishMessage(ctx, &assistantMsg, message.FinishReasonPermissionDenied)
-					break
 				}
+				goto out
+			default:
+				// Continue processing
 			}
-			toolResults[i] = message.ToolResult{
-				ToolCallID: toolCall.ID,
-				Content:    toolResult.Content,
-				Metadata:   toolResult.Metadata,
-				IsError:    toolResult.IsError,
+			res, permissionDenied := a.runOneTool(ctx, toolCall, toolsList)
+			toolResults[i] = res
+			if permissionDenied {
+				for j := i + 1; j < len(toolCalls); j++ {
+					toolResults[j] = message.ToolResult{
+						ToolCallID: toolCalls[j].ID,
+						Content:    "Tool execution canceled by user",
+						IsError:    true,
+					}
+				}
+				a.finishMessage(ctx, &assistantMsg, message.FinishReasonPermissionDenied)
+				break
 			}
 		}
 	}
@@ -539,6 +519,57 @@ func (a *agent) publishToolStream(toolCallID, chunk string) {
 		ToolCallID:    toolCallID,
 		StreamContent: chunk,
 	})
+}
+
+// parallelSafeTools are side-effect-free read-only tools that may safely run
+// concurrently within a single model turn.
+var parallelSafeTools = map[string]bool{
+	"glob": true,
+	"grep": true,
+	"ls":   true,
+}
+
+// parallelSafeToolCalls reports whether every call in the turn is a read-only
+// tool that can execute concurrently with the others. A single call is not
+// worth the concurrency overhead.
+func parallelSafeToolCalls(toolCalls []message.ToolCall) bool {
+	if len(toolCalls) < 2 {
+		return false
+	}
+	for _, tc := range toolCalls {
+		if !parallelSafeTools[tc.Name] {
+			return false
+		}
+	}
+	return true
+}
+
+// runOneTool resolves and executes a single tool call, returning its result
+// and a flag reporting whether execution was denied by the permission system
+// (used to cancel the remaining calls in serial mode).
+func (a *agent) runOneTool(ctx context.Context, toolCall message.ToolCall, toolsList []tools.BaseTool) (message.ToolResult, bool) {
+	for _, availableTool := range toolsList {
+		if availableTool.Info().Name == toolCall.Name {
+			a.publishToolEvent(toolCall.Name, true)
+			runCtx := context.WithValue(ctx, tools.StreamCallbackKey, tools.StreamOutputFunc(func(chunk string) {
+				a.publishToolStream(toolCall.ID, chunk)
+			}))
+			toolResult, toolErr := availableTool.Run(runCtx, tools.ToolCall{
+				ID:    toolCall.ID,
+				Name:  toolCall.Name,
+				Input: toolCall.Input,
+			})
+			a.publishToolEvent(toolCall.Name, false)
+			if toolErr != nil {
+				if errors.Is(toolErr, permission.ErrorPermissionDenied) {
+					return message.ToolResult{ToolCallID: toolCall.ID, Content: "Permission denied", IsError: true}, true
+				}
+				return message.ToolResult{ToolCallID: toolCall.ID, Content: fmt.Sprintf("Tool execution failed: %v", toolErr), IsError: true}, false
+			}
+			return message.ToolResult{ToolCallID: toolCall.ID, Content: toolResult.Content, Metadata: toolResult.Metadata, IsError: toolResult.IsError}, false
+		}
+	}
+	return message.ToolResult{ToolCallID: toolCall.ID, Content: fmt.Sprintf("Tool not found: %s", toolCall.Name), IsError: true}, false
 }
 
 func (a *agent) processEvent(ctx context.Context, sessionID string, assistantMsg *message.Message, event provider.ProviderEvent) error {

@@ -124,6 +124,8 @@ const (
 
 var defaultContextPaths = []string{
 	// 项目说明 / 指令文件（运行时项目里常见的约定文件名）
+	// 注意：内置技能库不再通过 contextPaths 全量注入，而是以常驻技能目录 +
+	// read_skill 工具按需加载（见 internal/llm/prompt/skills.go）。
 	".github/copilot-instructions.md",
 	".cursorrules",
 	".cursor/rules/",
@@ -135,18 +137,6 @@ var defaultContextPaths = []string{
 	"HyLbsCode.local.md",
 	"HYLBSCODE.md",
 	"HYLBSCODE.local.md",
-	// 内置技能库（skills/<类别>/Skill.md，frontmatter 带触发词）
-	"skills/coding/Skill.md",
-	"skills/planning/Skill.md",
-	"skills/reporting/Skill.md",
-	"skills/research/Skill.md",
-	"skills/documentation/Skill.md",
-	"skills/presentation/Skill.md",
-	"skills/meeting-notes/Skill.md",
-	"skills/knowledge/Skill.md",
-	"skills/decision/Skill.md",
-	"skills/learning/Skill.md",
-	"skills/exploration/Skill.md",
 }
 
 // Global configuration instance
