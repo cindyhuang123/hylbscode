@@ -60,6 +60,3 @@ HyLbsCode.md
 
 # opencode workspace files
 .sisyphus/
-
-# Runtime skills directory at repo/workdir root (auto-generated from embedded template on first run)
-/skills/
