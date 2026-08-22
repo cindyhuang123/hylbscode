@@ -645,26 +645,73 @@ func (c *ChatArea) renderNow() {
 		}
 	}
 	// Blocks that were not consumed by a persisted ToolCall part are still
-	// running; re-attach them at the end so streaming keeps updating them.
-	c.toolMu.Lock()
-	reattached := 0
-	const maxReattach = 20
-	for id, block := range active {
-		if _, consumed := c.toolBlocks[id]; !consumed {
-			if block == nil {
+	// running. Attach each one right after the view of the assistant message
+	// that issued the call instead of the list tail: appending at the end
+	// pushed live tool output below the newest streamed answer, and map
+	// iteration made several running blocks shuffle on every tick. Blocks
+	// whose owning message was trimmed away fall back to the tail.
+	toolSeq := make(map[string]int)
+	{
+		seq := 0
+		for _, m := range msgs {
+			if m.Role != message.Assistant {
 				continue
 			}
-			views = append(views, block)
-			c.toolBlocks[id] = block
-			reattached++
-			if reattached >= maxReattach {
-				break
+			for _, p := range m.Parts {
+				if tc, ok := p.(message.ToolCall); ok {
+					toolSeq[tc.ID] = seq
+					seq++
+				}
 			}
 		}
 	}
+	type pendingBlock struct {
+		order int
+		id    string
+		block fyne.CanvasObject
+	}
+	var pendings []pendingBlock
+	c.toolMu.Lock()
+	const maxReattach = 20
+	for id, block := range active {
+		if block == nil {
+			continue
+		}
+		if _, consumed := c.toolBlocks[id]; consumed {
+			continue
+		}
+		if len(pendings) >= maxReattach {
+			break
+		}
+		order, owned := toolSeq[id]
+		if !owned {
+			order = len(msgs)
+		}
+		pendings = append(pendings, pendingBlock{order, id, block})
+		c.toolBlocks[id] = block
+	}
 	c.toolMu.Unlock()
-	if reattached > 0 {
-		logging.Debug("chatarea: renderNow reattached running blocks", "count", reattached)
+	sort.Slice(pendings, func(i, j int) bool {
+		if pendings[i].order != pendings[j].order {
+			return pendings[i].order < pendings[j].order
+		}
+		return pendings[i].id < pendings[j].id
+	})
+	if len(pendings) > 0 {
+		merged := make([]fyne.CanvasObject, 0, len(views)+len(pendings))
+		pi := 0
+		for i, v := range views {
+			merged = append(merged, v)
+			for pi < len(pendings) && pendings[pi].order == i {
+				merged = append(merged, pendings[pi].block)
+				pi++
+			}
+		}
+		for ; pi < len(pendings); pi++ {
+			merged = append(merged, pendings[pi].block)
+		}
+		views = merged
+		logging.Debug("chatarea: renderNow reattached running blocks", "count", len(pendings))
 	}
 
 	c.output.Objects = views
