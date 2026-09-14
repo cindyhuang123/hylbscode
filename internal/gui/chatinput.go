@@ -9,7 +9,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/cindyhuang123/hylbscode/internal/config"
-	"github.com/cindyhuang123/hylbscode/internal/logging"
 )
 
 // ChatInput 是聊天输入控件：Enter 发送、Shift+Enter 换行。
@@ -96,7 +95,7 @@ func (e *chatEntry) KeyDown(ev *fyne.KeyEvent) {
 	if e.Disabled() || e.parent.shiftHeld() {
 		return // Shift+Enter 换行，由 TypedKey 放行给 Entry
 	}
-	logging.Info("chatinput: entry keydown enter -> submit")
+	// logging.Info("chatinput: entry keydown enter -> submit")
 	e.parent.onSubmit(e.Text)
 }
 
@@ -151,46 +150,46 @@ func (e *chatEntry) TypedKey(ev *fyne.KeyEvent) {
 // ---- fyne.Focusable ----
 
 func (c *ChatInput) FocusGained() {
-	logging.Info("chatinput: focus gained", "focused", c.focusType())
+	// logging.Info("chatinput: focus gained", "focused", c.focusType())
 	c.entry.FocusGained()
 }
 
 func (c *ChatInput) FocusLost() {
-	logging.Info("chatinput: focus lost", "focused", c.focusType())
+	// logging.Info("chatinput: focus lost", "focused", c.focusType())
 	c.entry.FocusLost()
 	if cv := fyne.CurrentApp().Driver().CanvasForObject(c); cv != nil {
 		fyne.Do(func() {
 			f := cv.Focused()
-			logging.Debug("chatinput: focus check", "focused", c.focusTypeOf(f))
+			// logging.Debug("chatinput: focus check", "focused", c.focusTypeOf(f))
 			switch {
 			case f == c.entry:
 				// Clicking the input focuses the inner entry; reclaim the outer
 				// widget so Enter interception still works.
 				cv.Focus(c)
-				logging.Info("chatinput: focus reclaimed (inner entry)")
+				// logging.Info("chatinput: focus reclaimed (inner entry)")
 			case f != nil && f != c:
 				// Focus moved to another widget (text selection, buttons,
 				// dialogs); let it keep focus so selection/copy works.
-				logging.Info("chatinput: focus stays on other widget")
+				// logging.Info("chatinput: focus stays on other widget")
 			default:
 				cv.Focus(c)
-				logging.Info("chatinput: focus reclaimed")
+				// logging.Info("chatinput: focus reclaimed")
 			}
 		})
 	} else {
-		logging.Warn("chatinput: focus lost, canvas not found")
+		// logging.Warn("chatinput: focus lost, canvas not found")
 	}
 }
 
 func (c *ChatInput) TypedRune(r rune) {
-	logging.Debug("chatinput: typedrune", "rune", fmt.Sprintf("%q", r))
+	// logging.Debug("chatinput: typedrune", "rune", fmt.Sprintf("%q", r))
 	c.entry.TypedRune(r)
 }
 
 func (c *ChatInput) TypedKey(ev *fyne.KeyEvent) {
-	logging.Debug("chatinput: typedkey", "key", ev.Name)
+	// logging.Debug("chatinput: typedkey", "key", ev.Name)
 	if ev.Name == fyne.KeyReturn || ev.Name == fyne.KeyEnter {
-		logging.Info("chatinput: typedkey swallowed enter")
+		// logging.Info("chatinput: typedkey swallowed enter")
 		return
 	}
 	c.entry.TypedKey(ev)
@@ -222,18 +221,18 @@ func (c *ChatInput) focusTypeOf(f fyne.Focusable) string {
 // ---- desktop.Keyable ----
 
 func (c *ChatInput) KeyDown(ev *fyne.KeyEvent) {
-	logging.Debug("chatinput: keydown", "key", ev.Name, "mod", c.modifierSummary())
+	// logging.Debug("chatinput: keydown", "key", ev.Name, "mod", c.modifierSummary())
 	if ev.Name == fyne.KeyReturn || ev.Name == fyne.KeyEnter {
-		logging.Info("chatinput: keydown enter/return", "shift", c.shiftHeld(), "disabled", c.entry.Disabled())
+		// logging.Info("chatinput: keydown enter/return", "shift", c.shiftHeld(), "disabled", c.entry.Disabled())
 		if c.entry.Disabled() {
 			return
 		}
 		if c.shiftHeld() {
-			logging.Info("chatinput: shift+enter -> newline")
+			// logging.Info("chatinput: shift+enter -> newline")
 			c.entry.TypedKey(ev)
 			return
 		}
-		logging.Info("chatinput: enter -> submit")
+		// logging.Info("chatinput: enter -> submit")
 		c.onSubmit(c.entry.Text)
 		return
 	}
