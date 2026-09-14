@@ -297,8 +297,12 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 				block, ok = active[p.ID]
 			}
 			if !ok {
-				block = NewToolBlock(p.Name)
-				block.SetOutput(p.Input)
+				if compact {
+					block = NewCompactToolBlock(p.Name)
+				} else {
+					block = NewToolBlock(p.Name)
+					block.SetOutput(p.Input)
+				}
 			}
 			if p.Finished {
 				block.SetResult(p.Name, false)
@@ -313,18 +317,20 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 				name = p.ToolCallID
 			}
 			var block *ToolBlock
-			if compact && p.IsError {
-				if p.ToolCallID != "" {
-					used[p.ToolCallID] = nil
-				}
-				continue
+			if !compact {
+				block = active[p.ToolCallID]
 			}
-			block = active[p.ToolCallID]
 			if block == nil {
-				block = NewToolBlock(name)
+				if compact {
+					block = NewCompactToolBlock(name)
+				} else {
+					block = NewToolBlock(name)
+				}
 			}
 			block.SetResult(name, p.IsError)
-			block.SetOutput(p.Content)
+			if !compact {
+				block.SetOutput(p.Content)
+			}
 			if p.ToolCallID != "" {
 				used[p.ToolCallID] = block
 			}

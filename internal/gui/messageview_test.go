@@ -111,6 +111,54 @@ func TestRenderMessageToolCallSkippedWhenResultStored(t *testing.T) {
 		t.Fatal("expected the tool call block to be skipped when the result is stored")
 	}
 }
+func TestRenderMessageToolCallCompactTitleOnly(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Assistant,
+		Parts: []message.ContentPart{
+			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"cmd":"ls"}`},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, true)
+	block, ok := used["call_1"]
+	if !ok {
+		t.Fatal("expected used map to contain call_1")
+	}
+	if got := block.TitleText(); got != "bash" {
+		t.Fatalf("expected compact title to be the tool name, got %q", got)
+	}
+	if block.output.Text != "" {
+		t.Fatalf("expected no tool input rendered in compact mode, got %q", block.output.Text)
+	}
+	if !block.outputBox.Hidden {
+		t.Fatal("expected compact block output area to be hidden")
+	}
+}
+
+func TestRenderMessageToolResultCompactTitleOnly(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Tool,
+		Parts: []message.ContentPart{
+			message.ToolResult{ToolCallID: "call_1", Name: "bash", Content: "out"},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, true)
+	block, ok := used["call_1"]
+	if !ok {
+		t.Fatal("expected used map to contain call_1")
+	}
+	if got := block.TitleText(); got != "bash" {
+		t.Fatalf("expected compact title to be the tool name, got %q", got)
+	}
+	if block.output.Text != "" {
+		t.Fatalf("expected no tool result content rendered in compact mode, got %q", block.output.Text)
+	}
+	if !block.outputBox.Hidden {
+		t.Fatal("expected compact block output area to be hidden")
+	}
+}
+
 func TestRenderMessageStripsANSI(t *testing.T) {
 	test.NewApp()
 	m := message.Message{

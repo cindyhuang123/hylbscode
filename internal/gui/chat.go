@@ -616,10 +616,9 @@ func (c *ChatArea) renderNow() {
 	hasMultipleRounds := assistantCount > 1
 	for i, m := range msgs {
 		seen[m.ID] = true
-		compact := false
+		compact := m.Role == message.Tool
 		if hasMultipleRounds {
-			compact = m.Role == message.Tool ||
-				(m.Role == message.Assistant && i != lastAssistant)
+			compact = compact || (m.Role == message.Assistant && i != lastAssistant)
 		}
 		if !dirty[m.ID] && !hasToolCallParts(m) {
 			if v, ok := cache[m.ID]; ok {
