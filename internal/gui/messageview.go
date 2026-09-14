@@ -340,18 +340,31 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			}
 			if p.Finished {
 				block.SetResult(p.Name, false)
-				if !compact && !codeTool {
-					block.title.Segments = []widget.RichTextSegment{
-						&widget.TextSegment{
-							Text:  p.Name,
-							Style: widget.RichTextStyle{ColorName: theme.ColorNameForeground, TextStyle: fyne.TextStyle{Bold: true}},
-						},
+				if !codeTool {
+					if compact {
+						display := p.Name
+						if p.Input != "" {
+							display = p.Name + "  " + summarizeToolInput(p.Name, p.Input)
+						}
+						block.title.Segments = []widget.RichTextSegment{
+							&widget.TextSegment{
+								Text:  display,
+								Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess, TextStyle: fyne.TextStyle{}},
+							},
+						}
+					} else {
+						block.title.Segments = []widget.RichTextSegment{
+							&widget.TextSegment{
+								Text:  p.Name,
+								Style: widget.RichTextStyle{ColorName: theme.ColorNameForeground, TextStyle: fyne.TextStyle{Bold: true}},
+							},
+						}
+						if p.Input != "" {
+							block.SetOutput(summarizeToolInput(p.Name, p.Input))
+						}
 					}
 					block.title.Show()
 					block.title.Refresh()
-					if p.Input != "" {
-						block.SetOutput(summarizeToolInput(p.Name, p.Input))
-					}
 				}
 			}
 			if p.ID != "" {

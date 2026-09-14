@@ -48,6 +48,27 @@ func TestSummarizeToolInput(t *testing.T) {
 // the live block created while the tool ran (ToolStart carries no input, so
 // it has no command), then the finished ToolCall re-renders and must replace
 // the reused block's output with the actual command.
+func TestRenderMessageToolCallCompactShowsCommand(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Assistant,
+		Parts: []message.ContentPart{
+			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"command":"find x | wc -l"}`, Finished: true},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, true)
+	block, ok := used["call_1"]
+	if !ok {
+		t.Fatal("expected used map to contain call_1")
+	}
+	if got := block.TitleText(); got != "bash  find x | wc -l" {
+		t.Fatalf("expected compact title to carry the command, got %q", got)
+	}
+	if block.output.Text != "" {
+		t.Fatalf("expected no output area in compact mode, got %q", block.output.Text)
+	}
+}
+
 func TestRenderMessageReusedLiveBlockGetsCommand(t *testing.T) {
 	test.NewApp()
 	live := NewToolBlock("bash")
