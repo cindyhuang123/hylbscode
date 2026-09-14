@@ -349,7 +349,12 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			name := p.Name
 			codeTool := isCodeTool(name)
 			var block *ToolBlock
-			if compact || codeTool {
+			if codeTool {
+				block = active[p.ToolCallID]
+				if block == nil {
+					block = NewCompactToolBlock(name)
+				}
+			} else if compact {
 				block = NewCompactToolBlock(name)
 			} else {
 				block = NewToolBlock(name)

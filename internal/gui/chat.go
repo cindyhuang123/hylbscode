@@ -599,7 +599,7 @@ func (c *ChatArea) renderNow() {
 			continue
 		}
 		for _, p := range m.Parts {
-			if tr, ok := p.(message.ToolResult); ok && tr.ToolCallID != "" {
+			if tr, ok := p.(message.ToolResult); ok && tr.ToolCallID != "" && isCodeTool(tr.Name) {
 				doneTools[tr.ToolCallID] = true
 			}
 		}
