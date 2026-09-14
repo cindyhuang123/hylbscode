@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"encoding/json"
 	"fmt"
 	"image/color"
 	"strings"
@@ -232,6 +233,20 @@ func isCodeTool(name string) bool {
 	return codeOutputTools[name]
 }
 
+// summarizeToolInput renders the tool call arguments a human can read: for
+// bash the actual command string is extracted from the {cmd: ...} JSON.
+func summarizeToolInput(toolName, input string) string {
+	if toolName == "bash" {
+		var m map[string]any
+		if err := json.Unmarshal([]byte(input), &m); err == nil {
+			if cmd, ok := m["cmd"].(string); ok {
+				return cmd
+			}
+		}
+	}
+	return input
+}
+
 // renderMessage builds the canvas object for a stored message. ToolCall parts
 // reuse the matching live block from active (keyed by tool call ID) so a
 // running tool keeps streaming; used maps the consumed call IDs to their
@@ -320,7 +335,7 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 					block = NewCompactToolBlock(p.Name)
 				} else {
 					block = NewToolBlock(p.Name)
-					block.SetOutput(p.Input)
+					block.SetOutput(summarizeToolInput(p.Name, p.Input))
 				}
 			}
 			if p.Finished {

@@ -24,8 +24,23 @@ func TestRenderMessageToolCallCreatesBlock(t *testing.T) {
 	if got := block.TitleText(); got != "bash" {
 		t.Fatalf("expected running state title to be the tool name, got %q", got)
 	}
-	if block.output.Text == "" {
-		t.Fatal("expected input rendered in output")
+	if block.output.Text != "ls" {
+		t.Fatalf("expected bash command rendered in output, got %q", block.output.Text)
+	}
+}
+
+func TestSummarizeToolInput(t *testing.T) {
+	cases := []struct {
+		name, tool, input, want string
+	}{
+		{"bash cmd", "bash", `{"cmd":"go test ./..."}`, "go test ./..."},
+		{"bash non-json", "bash", "ls", "ls"},
+		{"other tool json kept", "glob", `{"pattern":"*.go"}`, `{"pattern":"*.go"}`},
+	}
+	for _, c := range cases {
+		if got := summarizeToolInput(c.tool, c.input); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
 	}
 }
 
