@@ -539,7 +539,15 @@ func (c *ChatArea) OnAgentEvent(ev pubsub.Event[agent.AgentEvent]) {
 				return
 			}
 			if _, ok := c.toolBlocks[e.ToolCallID]; !ok {
-				block := NewToolBlock(e.ToolName)
+				var block *ToolBlock
+				if isCodeTool(e.ToolName) {
+					block = NewCompactToolBlock(e.ToolName)
+				} else {
+					block = NewToolBlock(e.ToolName)
+					if e.ToolInput != "" {
+						block.SetOutput(summarizeToolInput(e.ToolName, e.ToolInput))
+					}
+				}
 				c.toolBlocks[e.ToolCallID] = block
 				c.output.Add(block)
 				c.output.Refresh()

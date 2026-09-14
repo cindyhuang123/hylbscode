@@ -49,6 +49,7 @@ type AgentEvent struct {
 	// ToolStart=false when it finishes. ToolName identifies the tool.
 	ToolName  string
 	ToolStart bool
+	ToolInput string
 
 	// Streaming progress while a tool (e.g. bash) runs: ToolCallID identifies
 	// the running tool call and StreamContent carries the latest output chunk.
@@ -499,12 +500,13 @@ func (a *agent) finishMessage(ctx context.Context, msg *message.Message, finishR
 
 // publishToolEvent broadcasts the start or end of a tool execution so the UI
 // can display which tool is running and for how long.
-func (a *agent) publishToolEvent(toolName string, start bool) {
+func (a *agent) publishToolEvent(toolName string, input string, start bool) {
 	a.Publish(pubsub.CreatedEvent, AgentEvent{
 		Type:      AgentEventTypeToolUse,
 		SessionID: "",
 		ToolName:  toolName,
 		ToolStart: start,
+		ToolInput: input,
 	})
 }
 
@@ -548,7 +550,7 @@ func (a *agent) runOneTool(ctx context.Context, toolCall message.ToolCall, tools
 	for _, availableTool := range toolsList {
 		if availableTool.Info().Name == toolCall.Name {
 			logging.Info("*******###*******调用工具***************###****", "tool", toolCall.Name)
-			a.publishToolEvent(toolCall.Name, true)
+			a.publishToolEvent(toolCall.Name, toolCall.Input, true)
 			runCtx := context.WithValue(ctx, tools.StreamCallbackKey, tools.StreamOutputFunc(func(chunk string) {
 				a.publishToolStream(toolCall.ID, chunk)
 			}))
@@ -557,7 +559,7 @@ func (a *agent) runOneTool(ctx context.Context, toolCall message.ToolCall, tools
 				Name:  toolCall.Name,
 				Input: toolCall.Input,
 			})
-			a.publishToolEvent(toolCall.Name, false)
+			a.publishToolEvent(toolCall.Name, "", false)
 			if toolErr != nil {
 				if errors.Is(toolErr, permission.ErrorPermissionDenied) {
 					return message.ToolResult{ToolCallID: toolCall.ID, Name: toolCall.Name, Content: "Permission denied", IsError: true}, true

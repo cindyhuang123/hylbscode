@@ -74,7 +74,7 @@ func TestRenderMessageToolCallReusesLiveBlock(t *testing.T) {
 	}
 }
 
-func TestRenderMessageToolResultReusesLiveBlock(t *testing.T) {
+func TestRenderMessageToolResultCreatesNewBlock(t *testing.T) {
 	test.NewApp()
 	live := NewToolBlock("bash")
 	active := map[string]*ToolBlock{"call_1": live}
@@ -85,14 +85,11 @@ func TestRenderMessageToolResultReusesLiveBlock(t *testing.T) {
 		},
 	}
 	_, used := renderMessage(m, active, nil, false)
-	if used["call_1"] != live {
-		t.Fatal("expected the live block to be reused")
+	if used["call_1"] == live {
+		t.Fatal("expected a fresh block for the tool result, not the reused live one")
 	}
-	if got := live.TitleText(); got != "bash" {
-		t.Fatalf("expected error title to be the tool name, got %q", got)
-	}
-	if live.output.Text == "" {
-		t.Fatal("expected result content to replace output")
+	if used["call_1"].output.Text != "out" {
+		t.Fatalf("expected tool result output rendered, got %q", used["call_1"].output.Text)
 	}
 }
 
