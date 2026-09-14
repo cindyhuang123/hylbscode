@@ -13,7 +13,7 @@ func TestRenderMessageToolCallCreatesBlock(t *testing.T) {
 	m := message.Message{
 		Role: message.Assistant,
 		Parts: []message.ContentPart{
-			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"cmd":"ls"}`},
+			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"command":"ls"}`},
 		},
 	}
 	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, false)
@@ -33,7 +33,7 @@ func TestSummarizeToolInput(t *testing.T) {
 	cases := []struct {
 		name, tool, input, want string
 	}{
-		{"bash cmd", "bash", `{"cmd":"go test ./..."}`, "go test ./..."},
+		{"bash cmd", "bash", `{"command":"go test ./..."}`, "go test ./..."},
 		{"bash non-json", "bash", "ls", "ls"},
 		{"other tool json kept", "glob", `{"pattern":"*.go"}`, `{"pattern":"*.go"}`},
 	}
@@ -53,8 +53,11 @@ func TestRenderMessageToolCallFinished(t *testing.T) {
 		},
 	}
 	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, false)
-	if !used["call_1"].title.Hidden {
-		t.Fatal("expected successful tool title to be hidden")
+	if used["call_1"].title.Hidden {
+		t.Fatal("expected the tool name title to stay visible next to the command")
+	}
+	if got := used["call_1"].TitleText(); got != "bash" {
+		t.Fatalf("expected title to be the tool name, got %q", got)
 	}
 }
 
@@ -209,7 +212,7 @@ func TestRenderMessageToolCallCompactTitleOnly(t *testing.T) {
 	m := message.Message{
 		Role: message.Assistant,
 		Parts: []message.ContentPart{
-			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"cmd":"ls"}`},
+			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"command":"ls"}`},
 		},
 	}
 	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, true)

@@ -106,8 +106,11 @@ func TestRenderNowConsumesFinishedToolCall(t *testing.T) {
 	if block != live {
 		t.Fatal("expected the live block to be reused for the finished call")
 	}
-	if !block.title.Hidden {
-		t.Fatal("expected successful tool title to be hidden")
+	if block.title.Hidden {
+		t.Fatal("expected the tool name title to stay visible next to the command")
+	}
+	if got := block.TitleText(); got != "bash" {
+		t.Fatalf("expected title to be the tool name, got %q", got)
 	}
 }
 

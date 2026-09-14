@@ -239,7 +239,7 @@ func summarizeToolInput(toolName, input string) string {
 	if toolName == "bash" {
 		var m map[string]any
 		if err := json.Unmarshal([]byte(input), &m); err == nil {
-			if cmd, ok := m["cmd"].(string); ok {
+			if cmd, ok := m["command"].(string); ok && cmd != "" {
 				return cmd
 			}
 		}
@@ -340,6 +340,16 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			}
 			if p.Finished {
 				block.SetResult(p.Name, false)
+				if !compact && !codeTool {
+					block.title.Segments = []widget.RichTextSegment{
+						&widget.TextSegment{
+							Text:  p.Name,
+							Style: widget.RichTextStyle{ColorName: theme.ColorNameForeground, TextStyle: fyne.TextStyle{Bold: true}},
+						},
+					}
+					block.title.Show()
+					block.title.Refresh()
+				}
 			}
 			if p.ID != "" {
 				used[p.ID] = block
