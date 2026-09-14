@@ -550,6 +550,7 @@ func parallelSafeToolCalls(toolCalls []message.ToolCall) bool {
 func (a *agent) runOneTool(ctx context.Context, toolCall message.ToolCall, toolsList []tools.BaseTool) (message.ToolResult, bool) {
 	for _, availableTool := range toolsList {
 		if availableTool.Info().Name == toolCall.Name {
+			logging.Info("调用工具", "tool", toolCall.Name)
 			a.publishToolEvent(toolCall.Name, true)
 			runCtx := context.WithValue(ctx, tools.StreamCallbackKey, tools.StreamOutputFunc(func(chunk string) {
 				a.publishToolStream(toolCall.ID, chunk)

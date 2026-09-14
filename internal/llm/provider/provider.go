@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/llm/models"
 	"github.com/cindyhuang123/hylbscode/internal/llm/tools"
+	"github.com/cindyhuang123/hylbscode/internal/logging"
 	"github.com/cindyhuang123/hylbscode/internal/message"
 )
 
@@ -232,7 +234,10 @@ func (p *baseProvider[C]) cleanMessages(messages []message.Message) (cleaned []m
 
 func (p *baseProvider[C]) SendMessages(ctx context.Context, messages []message.Message, tools []tools.BaseTool) (*ProviderResponse, error) {
 	messages = p.cleanMessages(messages)
-	return p.client.send(ctx, messages, tools)
+	logRequestToLLM(ctx, p.options, messages, len(tools))
+	resp, err := p.client.send(ctx, messages, tools)
+	logResponseFromLLM(ctx, p.options, resp, err)
+	return resp, err
 }
 
 func (p *baseProvider[C]) Model() models.Model {
@@ -241,7 +246,64 @@ func (p *baseProvider[C]) Model() models.Model {
 
 func (p *baseProvider[C]) StreamResponse(ctx context.Context, messages []message.Message, tools []tools.BaseTool) <-chan ProviderEvent {
 	messages = p.cleanMessages(messages)
-	return p.client.stream(ctx, messages, tools)
+	logRequestToLLM(ctx, p.options, messages, len(tools))
+	in := p.client.stream(ctx, messages, tools)
+	out := make(chan ProviderEvent)
+	go func() {
+		defer close(out)
+		for ev := range in {
+			switch ev.Type {
+			case EventComplete:
+				logResponseFromLLM(ctx, p.options, ev.Response, nil)
+			case EventError:
+				logResponseFromLLM(ctx, p.options, nil, ev.Error)
+			}
+			out <- ev
+		}
+	}()
+	return out
+}
+
+func sessionID(ctx context.Context) string {
+	sid, _ := ctx.Value(tools.SessionIDContextKey).(string)
+	return sid
+}
+
+func logRequestToLLM(ctx context.Context, p providerClientOptions, messages []message.Message, toolCount int) {
+	logging.Info("请求to llm",
+		"provider", p.model.Provider,
+		"model", p.model.ID,
+		"messages", len(messages),
+		"tools", toolCount,
+		"session_id", sessionID(ctx),
+	)
+	if cfg := config.Get(); cfg != nil && cfg.Debug {
+		if data, err := json.Marshal(messages); err == nil {
+			logging.Debug("请求to llm", "content", string(data))
+		}
+	}
+}
+
+func logResponseFromLLM(ctx context.Context, p providerClientOptions, resp *ProviderResponse, err error) {
+	if err != nil {
+		logging.Info("响应from llm", "provider", p.model.Provider, "model", p.model.ID, "error", err)
+		return
+	}
+	logging.Info("响应from llm",
+		"provider", p.model.Provider,
+		"model", p.model.ID,
+		"content_len", len(resp.Content),
+		"tool_calls", len(resp.ToolCalls),
+		"input_tokens", resp.Usage.InputTokens,
+		"output_tokens", resp.Usage.OutputTokens,
+		"finish_reason", resp.FinishReason,
+		"session_id", sessionID(ctx),
+	)
+	if cfg := config.Get(); cfg != nil && cfg.Debug {
+		if data, err := json.Marshal(resp); err == nil {
+			logging.Debug("响应from llm", "content", string(data))
+		}
+	}
 }
 
 func WithAPIKey(apiKey string) ProviderClientOption {
