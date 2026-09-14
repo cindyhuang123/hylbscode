@@ -996,6 +996,40 @@ func UpdateProviderConfig(provider models.ModelProvider, apiKey, baseURL string)
 	})
 }
 
+// UpdateExtraModels replaces the user-defined extra models. The new list is
+// validated and applied to the in-memory model registry immediately (runtime
+// edits take effect without a restart), then persisted to the config file.
+func UpdateExtraModels(extras []models.Model) error {
+	if cfg == nil {
+		return fmt.Errorf("config not loaded")
+	}
+	if err := models.ReconcileExtraModels(extras); err != nil {
+		return err
+	}
+	cfg.ExtraModels = extras
+	return updateCfgFile(func(config *Config) {
+		config.ExtraModels = extras
+	})
+}
+
+// DeleteExtraModel removes a user-defined extra model by ID. Built-in models
+// are not part of cfg.ExtraModels and are rejected. Takes effect immediately.
+func DeleteExtraModel(modelID models.ModelID) error {
+	if cfg == nil {
+		return fmt.Errorf("config not loaded")
+	}
+	extras := make([]models.Model, 0, len(cfg.ExtraModels))
+	for _, m := range cfg.ExtraModels {
+		if m.ID != modelID {
+			extras = append(extras, m)
+		}
+	}
+	if len(extras) == len(cfg.ExtraModels) {
+		return fmt.Errorf("model %s is not a custom extra model", modelID)
+	}
+	return UpdateExtraModels(extras)
+}
+
 // UpdateTheme updates the theme in the configuration and writes it to the config file.
 func UpdateTheme(themeName string) error {
 	if cfg == nil {

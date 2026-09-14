@@ -158,6 +158,19 @@ type Translation struct {
 	GUIProviderNoKey   string
 	GUIProviderSaved   string
 	GUIProviderSelect  string
+
+	// GUI extra models editor.
+	GUIExtraModelMenu           string
+	GUIExtraModelTitle          string
+	GUIExtraModelHint           string
+	GUIExtraModelExample        string
+	GUIExtraModelExampleReplace string
+	GUIExtraModelSaved          string
+	GUIExtraModelInvalid        string
+	GUIExtraModelDeleteTitle    string
+	GUIExtraModelDeleteMsg      string
+	GUIExtraModelDeleteBuiltin  string
+	GUIExtraModelDeletedInUse   string
 }
 
 var (
@@ -298,6 +311,18 @@ var (
 			GUIProviderSave:    "Save",
 			GUIProviderNoKey:   "API key cannot be empty.",
 			GUIProviderSaved:   "API key saved.",
+
+			GUIExtraModelMenu:           "Edit Models…",
+			GUIExtraModelTitle:          "Custom Models (extraModels)",
+			GUIExtraModelHint:           "JSON array of models. Required: id, api_model, provider, context_window (e.g. 65536). Set cost_currency to CNY for domestic providers.",
+			GUIExtraModelExample:        "Insert Example",
+			GUIExtraModelExampleReplace: "Replace the current content with the example?",
+			GUIExtraModelSaved:          "Models saved and applied.",
+			GUIExtraModelInvalid:        "Failed to parse JSON: ",
+			GUIExtraModelDeleteTitle:    "Delete Model",
+			GUIExtraModelDeleteMsg:      "Delete model \"%s\"? This cannot be undone.",
+			GUIExtraModelDeleteBuiltin:  "Built-in models cannot be deleted. Only custom models (extraModels) can.",
+			GUIExtraModelDeletedInUse:   "Model deleted. The current coding model used it, please pick another one.",
 		},
 		LangChinese: {
 			PermissionTitle:      "需要权限确认",
@@ -435,6 +460,18 @@ var (
 			GUIProviderSave:    "保存",
 			GUIProviderNoKey:   "API Key 不能为空。",
 			GUIProviderSaved:   "API Key 已保存。",
+
+			GUIExtraModelMenu:           "配置模型…",
+			GUIExtraModelTitle:          "自定义模型 (extraModels)",
+			GUIExtraModelHint:           "JSON 数组。必填字段: id、api_model、provider、context_window(如 65536)。国内服务商可设 cost_currency 为 CNY。",
+			GUIExtraModelExample:        "填入示例",
+			GUIExtraModelExampleReplace: "用示例替换当前内容？",
+			GUIExtraModelSaved:          "模型已保存并生效。",
+			GUIExtraModelInvalid:        "JSON 解析失败：",
+			GUIExtraModelDeleteTitle:    "删除模型",
+			GUIExtraModelDeleteMsg:      "确定删除模型 \"%s\"？此操作不可撤销。",
+			GUIExtraModelDeleteBuiltin:  "内置模型不能删除，只能删除自定义模型 (extraModels)。",
+			GUIExtraModelDeletedInUse:   "模型已删除。当前编码模型正在使用它，请重新选择。",
 		},
 	}
 

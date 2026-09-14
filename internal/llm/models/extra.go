@@ -20,13 +20,10 @@ var validProviders = map[ModelProvider]bool{
 	ProviderLocal:      true,
 }
 
-// MergeExtraModels registers user-defined models from the config file into
-// SupportedModels. A model whose ID already exists (built-in) replaces the
-// built-in definition entirely, so pricing and other metadata can be
-// overridden without recompiling. Provider-specific capability flags such as
-// CanReason and SupportsAttachments must match what the provider client
-// actually supports.
-func MergeExtraModels(extras []Model) error {
+var extraModelIDs = map[ModelID]bool{}
+
+// validateExtraModels checks the list without touching SupportedModels.
+func validateExtraModels(extras []Model) error {
 	for _, m := range extras {
 		if m.ID == "" {
 			return fmt.Errorf("extra model: id is required")
@@ -43,7 +40,42 @@ func MergeExtraModels(extras []Model) error {
 		if m.ContextWindow <= 0 {
 			return fmt.Errorf("extra model %q: contextWindow must be greater than 0", m.ID)
 		}
-		SupportedModels[m.ID] = m
 	}
+	return nil
+}
+
+func applyExtraModels(extras []Model) {
+	for _, m := range extras {
+		SupportedModels[m.ID] = m
+		extraModelIDs[m.ID] = true
+	}
+}
+
+// MergeExtraModels registers user-defined models from the config file into
+// SupportedModels. A model whose ID already exists (built-in) replaces the
+// built-in definition entirely, so pricing and other metadata can be
+// overridden without recompiling. Provider-specific capability flags such as
+// CanReason and SupportsAttachments must match what the provider client
+// actually supports.
+func MergeExtraModels(extras []Model) error {
+	if err := validateExtraModels(extras); err != nil {
+		return err
+	}
+	applyExtraModels(extras)
+	return nil
+}
+
+// ReconcileExtraModels makes SupportedModels reflect exactly the given extras,
+// removing previously registered ones that disappeared, so runtime edits to
+// the extraModels config take effect without a restart.
+func ReconcileExtraModels(extras []Model) error {
+	if err := validateExtraModels(extras); err != nil {
+		return err
+	}
+	for id := range extraModelIDs {
+		delete(SupportedModels, id)
+	}
+	clear(extraModelIDs)
+	applyExtraModels(extras)
 	return nil
 }

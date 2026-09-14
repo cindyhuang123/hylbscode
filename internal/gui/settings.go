@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"sort"
 
 	"fyne.io/fyne/v2"
@@ -91,11 +92,47 @@ func (g *MainWindow) ShowSettings() {
 	}
 	selectedModel = currentModel
 
+	deleteBtn := widget.NewButton(tr.GUIDelete, func() {
+		if selectedModel == "" {
+			return
+		}
+		modelName := string(selectedModel)
+		if m, ok := models.SupportedModels[selectedModel]; ok {
+			modelName = m.Name
+		}
+		isExtra := false
+		for _, m := range config.Get().ExtraModels {
+			if m.ID == selectedModel {
+				isExtra = true
+				break
+			}
+		}
+		if !isExtra {
+			dialog.ShowInformation(tr.GUIExtraModelDeleteTitle, tr.GUIExtraModelDeleteBuiltin, g.win)
+			return
+		}
+		dialog.ShowConfirm(tr.GUIExtraModelDeleteTitle, fmt.Sprintf(tr.GUIExtraModelDeleteMsg, modelName), func(ok bool) {
+			if !ok {
+				return
+			}
+			if err := config.DeleteExtraModel(selectedModel); err != nil {
+				dialog.ShowInformation(tr.GUIExtraModelDeleteTitle, err.Error(), g.win)
+				return
+			}
+			refreshModels(selectedProv)
+			if selectedModel == currentModel {
+				dialog.ShowInformation(tr.GUIExtraModelDeleteTitle, tr.GUIExtraModelDeletedInUse, g.win)
+			}
+			g.refreshStatus()
+		}, g.win)
+	})
+
 	content := container.NewVBox(
 		widget.NewLabelWithStyle(tr.GUIProviderSelect, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		providerSelect,
 		widget.NewLabelWithStyle(tr.GUIModelLabel, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		modelSelect,
+		deleteBtn,
 	)
 	dlg := dialog.NewCustomConfirm(tr.GUISettingsItem, tr.GUIDone, tr.GUIDismiss, content, func(ok bool) {
 		if ok && selectedModel != "" {
@@ -149,6 +186,7 @@ func (g *MainWindow) Menu() *fyne.MainMenu {
 	settings := fyne.NewMenuItem(tr.GUISettingsItem, g.ShowSettings)
 	settings.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyO, Modifier: fyne.KeyModifierControl}
 	providerCfg := fyne.NewMenuItem(tr.GUIProviderMenu, g.ShowProviderSetup)
+	extraModelsItem := fyne.NewMenuItem(tr.GUIExtraModelMenu, g.ShowExtraModelEditor)
 	quit := fyne.NewMenuItem(tr.GUIQuitItem, g.requestQuit)
 	quit.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyQ, Modifier: fyne.KeyModifierControl}
 
@@ -165,7 +203,7 @@ func (g *MainWindow) Menu() *fyne.MainMenu {
 		file.Refresh()
 	})
 	confirmQuitItem.Checked = confirmQuitChecked()
-	file = fyne.NewMenu(tr.GUIFileMenu, settings, providerCfg, confirmQuitItem, quit)
+	file = fyne.NewMenu(tr.GUIFileMenu, settings, providerCfg, extraModelsItem, confirmQuitItem, quit)
 
 	g.themeAuto = fyne.NewMenuItem(tr.GUIThemeAuto, func() { g.applyTheme("auto") })
 	g.themeLight = fyne.NewMenuItem(tr.GUIThemeLight, func() { g.applyTheme("light") })

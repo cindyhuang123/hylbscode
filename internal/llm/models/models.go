@@ -19,16 +19,16 @@ type Model struct {
 	ID                  ModelID       `json:"id"`
 	Name                string        `json:"name"`
 	Provider            ModelProvider `json:"provider"`
-	APIModel            string        `json:"api_model"`
-	CostPer1MIn         float64       `json:"cost_per_1m_in"`
-	CostPer1MOut        float64       `json:"cost_per_1m_out"`
-	CostPer1MInCached   float64       `json:"cost_per_1m_in_cached"`
-	CostPer1MOutCached  float64       `json:"cost_per_1m_out_cached"`
-	CostCurrency        string        `json:"cost_currency,omitempty"` // CNY or USD; empty = inferred from provider
-	ContextWindow       int64         `json:"context_window"`
-	DefaultMaxTokens    int64         `json:"default_max_tokens"`
-	CanReason           bool          `json:"can_reason"`
-	SupportsAttachments bool          `json:"supports_attachments"`
+	APIModel            string        `json:"api_model" mapstructure:"api_model"`
+	CostPer1MIn         float64       `json:"cost_per_1m_in" mapstructure:"cost_per_1m_in"`
+	CostPer1MOut        float64       `json:"cost_per_1m_out" mapstructure:"cost_per_1m_out"`
+	CostPer1MInCached   float64       `json:"cost_per_1m_in_cached" mapstructure:"cost_per_1m_in_cached"`
+	CostPer1MOutCached  float64       `json:"cost_per_1m_out_cached" mapstructure:"cost_per_1m_out_cached"`
+	CostCurrency        string        `json:"cost_currency,omitempty" mapstructure:"cost_currency"` // CNY or USD; empty = inferred from provider
+	ContextWindow       int64         `json:"context_window" mapstructure:"context_window"`
+	DefaultMaxTokens    int64         `json:"default_max_tokens" mapstructure:"default_max_tokens"`
+	CanReason           bool          `json:"can_reason" mapstructure:"can_reason"`
+	SupportsAttachments bool          `json:"supports_attachments" mapstructure:"supports_attachments"`
 }
 
 // CostCurrencyDefault returns the pricing currency for the model, honoring an
