@@ -214,6 +214,24 @@ func messageCopyText(m message.Message) string {
 	return strings.TrimSpace(b.String())
 }
 
+// codeOutputTools are tools whose output is mostly file content, code
+// snippets or source paths (the "read/write" family). Their chat blocks show
+// only the tool name so code and paths do not leak into the window; other
+// tools (bash, ls, diagnostics...) keep showing their output as before.
+var codeOutputTools = map[string]bool{
+	"read":        true,
+	"view":        true,
+	"edit":        true,
+	"write":       true,
+	"patch":       true,
+	"grep":        true,
+	"sourcegraph": true,
+}
+
+func isCodeTool(name string) bool {
+	return codeOutputTools[name]
+}
+
 // renderMessage builds the canvas object for a stored message. ToolCall parts
 // reuse the matching live block from active (keyed by tool call ID) so a
 // running tool keeps streaming; used maps the consumed call IDs to their
@@ -291,13 +309,14 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			if doneTools[p.ID] {
 				continue
 			}
+			codeTool := isCodeTool(p.Name)
 			var block *ToolBlock
 			var ok bool
-			if !compact {
+			if !compact && !codeTool {
 				block, ok = active[p.ID]
 			}
 			if !ok {
-				if compact {
+				if compact || codeTool {
 					block = NewCompactToolBlock(p.Name)
 				} else {
 					block = NewToolBlock(p.Name)
@@ -313,22 +332,20 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			body.Add(block)
 		case message.ToolResult:
 			name := p.Name
-			if name == "" && p.IsError {
-				name = p.ToolCallID
-			}
+			codeTool := isCodeTool(name)
 			var block *ToolBlock
-			if !compact {
+			if !compact && !codeTool {
 				block = active[p.ToolCallID]
 			}
 			if block == nil {
-				if compact {
+				if compact || codeTool {
 					block = NewCompactToolBlock(name)
 				} else {
 					block = NewToolBlock(name)
 				}
 			}
 			block.SetResult(name, p.IsError)
-			if !compact {
+			if !compact && !codeTool {
 				block.SetOutput(p.Content)
 			}
 			if p.ToolCallID != "" {

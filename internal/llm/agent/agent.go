@@ -560,14 +560,14 @@ func (a *agent) runOneTool(ctx context.Context, toolCall message.ToolCall, tools
 			a.publishToolEvent(toolCall.Name, false)
 			if toolErr != nil {
 				if errors.Is(toolErr, permission.ErrorPermissionDenied) {
-					return message.ToolResult{ToolCallID: toolCall.ID, Content: "Permission denied", IsError: true}, true
+					return message.ToolResult{ToolCallID: toolCall.ID, Name: toolCall.Name, Content: "Permission denied", IsError: true}, true
 				}
-				return message.ToolResult{ToolCallID: toolCall.ID, Content: fmt.Sprintf("Tool execution failed: %v", toolErr), IsError: true}, false
+				return message.ToolResult{ToolCallID: toolCall.ID, Name: toolCall.Name, Content: fmt.Sprintf("Tool execution failed: %v", toolErr), IsError: true}, false
 			}
-			return message.ToolResult{ToolCallID: toolCall.ID, Content: toolResult.Content, Metadata: toolResult.Metadata, IsError: toolResult.IsError}, false
+			return message.ToolResult{ToolCallID: toolCall.ID, Name: toolCall.Name, Content: toolResult.Content, Metadata: toolResult.Metadata, IsError: toolResult.IsError}, false
 		}
 	}
-	return message.ToolResult{ToolCallID: toolCall.ID, Content: fmt.Sprintf("Tool not found: %s", toolCall.Name), IsError: true}, false
+	return message.ToolResult{ToolCallID: toolCall.ID, Name: toolCall.Name, Content: fmt.Sprintf("Tool not found: %s", toolCall.Name), IsError: true}, false
 }
 
 func (a *agent) processEvent(ctx context.Context, sessionID string, assistantMsg *message.Message, event provider.ProviderEvent) error {

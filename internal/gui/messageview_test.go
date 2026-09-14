@@ -98,6 +98,24 @@ func TestRenderMessageToolResultNewBlock(t *testing.T) {
 	}
 }
 
+func TestRenderMessageToolResultErrorFallbackName(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Tool,
+		Parts: []message.ContentPart{
+			message.ToolResult{ToolCallID: "call_xx", Name: "", Content: "err", IsError: true},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+	block, ok := used["call_xx"]
+	if !ok {
+		t.Fatal("expected used map to contain call_xx")
+	}
+	if got := block.TitleText(); got != "error" {
+		t.Fatalf("expected error fallback title 'error', got %q", got)
+	}
+}
+
 func TestRenderMessageToolCallSkippedWhenResultStored(t *testing.T) {
 	test.NewApp()
 	m := message.Message{
@@ -111,6 +129,69 @@ func TestRenderMessageToolCallSkippedWhenResultStored(t *testing.T) {
 		t.Fatal("expected the tool call block to be skipped when the result is stored")
 	}
 }
+func TestRenderMessageToolResultShowsOutput(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Tool,
+		Parts: []message.ContentPart{
+			message.ToolResult{ToolCallID: "call_1", Name: "bash", Content: "ok"},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+	block, ok := used["call_1"]
+	if !ok {
+		t.Fatal("expected used map to contain call_1")
+	}
+	if block.output.Text != "ok" {
+		t.Fatalf("expected bash output content to be shown, got %q", block.output.Text)
+	}
+	if !block.title.Hidden {
+		t.Fatal("expected successful tool title to be hidden")
+	}
+}
+
+func TestRenderMessageCodeToolCallCompact(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Assistant,
+		Parts: []message.ContentPart{
+			message.ToolCall{ID: "call_2", Name: "read", Input: "/path/file.go"},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+	block, ok := used["call_2"]
+	if !ok {
+		t.Fatal("expected used map to contain call_2")
+	}
+	if got := block.TitleText(); got != "read" {
+		t.Fatalf("expected compact title to be the tool name, got %q", got)
+	}
+	if block.output.Text != "" {
+		t.Fatalf("expected no tool input rendered for code tool, got %q", block.output.Text)
+	}
+}
+
+func TestRenderMessageCodeToolResultCompact(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Tool,
+		Parts: []message.ContentPart{
+			message.ToolResult{ToolCallID: "call_2", Name: "read", Content: "package main\n"},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+	block, ok := used["call_2"]
+	if !ok {
+		t.Fatal("expected used map to contain call_2")
+	}
+	if got := block.TitleText(); got != "read" {
+		t.Fatalf("expected compact title to be the tool name, got %q", got)
+	}
+	if block.output.Text != "" {
+		t.Fatalf("expected no file content rendered for code tool, got %q", block.output.Text)
+	}
+}
+
 func TestRenderMessageToolCallCompactTitleOnly(t *testing.T) {
 	test.NewApp()
 	m := message.Message{
