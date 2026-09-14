@@ -44,6 +44,32 @@ func TestSummarizeToolInput(t *testing.T) {
 	}
 }
 
+// TestRenderMessageReusedLiveBlockGetsCommand reproduces the streaming flow:
+// the live block created while the tool ran (ToolStart carries no input, so
+// it has no command), then the finished ToolCall re-renders and must replace
+// the reused block's output with the actual command.
+func TestRenderMessageReusedLiveBlockGetsCommand(t *testing.T) {
+	test.NewApp()
+	live := NewToolBlock("bash")
+	active := map[string]*ToolBlock{"call_1": live}
+	m := message.Message{
+		Role: message.Assistant,
+		Parts: []message.ContentPart{
+			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"command":"find x | wc -l"}`, Finished: true},
+		},
+	}
+	_, used := renderMessage(m, active, nil, false)
+	if used["call_1"] != live {
+		t.Fatal("expected the live block to be reused")
+	}
+	if live.output.Text != "find x | wc -l" {
+		t.Fatalf("expected command in reused block output, got %q", live.output.Text)
+	}
+	if got := live.TitleText(); got != "bash" {
+		t.Fatalf("expected tool name title, got %q", got)
+	}
+}
+
 func TestRenderMessageToolCallFinished(t *testing.T) {
 	test.NewApp()
 	m := message.Message{

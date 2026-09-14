@@ -349,6 +349,9 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 					}
 					block.title.Show()
 					block.title.Refresh()
+					if p.Input != "" {
+						block.SetOutput(summarizeToolInput(p.Name, p.Input))
+					}
 				}
 			}
 			if p.ID != "" {
