@@ -270,18 +270,14 @@ func sessionID(ctx context.Context) string {
 }
 
 func logRequestToLLM(ctx context.Context, p providerClientOptions, messages []message.Message, toolCount int) {
+	data, _ := json.Marshal(messages)
 	logging.Info("请求to llm",
 		"provider", p.model.Provider,
 		"model", p.model.ID,
-		"messages", len(messages),
+		"messages", string(data),
 		"tools", toolCount,
 		"session_id", sessionID(ctx),
 	)
-	if cfg := config.Get(); cfg != nil && cfg.Debug {
-		if data, err := json.Marshal(messages); err == nil {
-			logging.Debug("请求to llm", "content", string(data))
-		}
-	}
 }
 
 func logResponseFromLLM(ctx context.Context, p providerClientOptions, resp *ProviderResponse, err error) {
@@ -289,21 +285,15 @@ func logResponseFromLLM(ctx context.Context, p providerClientOptions, resp *Prov
 		logging.Info("响应from llm", "provider", p.model.Provider, "model", p.model.ID, "error", err)
 		return
 	}
+	toolCalls, _ := json.Marshal(resp.ToolCalls)
 	logging.Info("响应from llm",
 		"provider", p.model.Provider,
 		"model", p.model.ID,
-		"content_len", len(resp.Content),
-		"tool_calls", len(resp.ToolCalls),
-		"input_tokens", resp.Usage.InputTokens,
-		"output_tokens", resp.Usage.OutputTokens,
-		"finish_reason", resp.FinishReason,
+		"CONTENT", resp.Content,
+		"TOOL_CALLS", string(toolCalls),
+		"USAGE", fmt.Sprintf("in:%d out:%d", resp.Usage.InputTokens, resp.Usage.OutputTokens),
 		"session_id", sessionID(ctx),
 	)
-	if cfg := config.Get(); cfg != nil && cfg.Debug {
-		if data, err := json.Marshal(resp); err == nil {
-			logging.Debug("响应from llm", "content", string(data))
-		}
-	}
 }
 
 func WithAPIKey(apiKey string) ProviderClientOption {

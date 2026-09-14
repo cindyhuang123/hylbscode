@@ -361,10 +361,7 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 		}
 		if cfg.Debug {
 			seqId := (len(msgHistory) + 1) / 2
-			toolResultFilepath := logging.WriteToolResultsJson(sessionID, seqId, toolResults)
-			logging.Info("Result", "message", agentMessage.FinishReason(), "toolResults", "{}", "filepath", toolResultFilepath)
-		} else {
-			logging.Info("Result", "message", agentMessage.FinishReason(), "toolResults", toolResults)
+			_ = logging.WriteToolResultsJson(sessionID, seqId, toolResults)
 		}
 		if (agentMessage.FinishReason() == message.FinishReasonToolUse) && toolResults != nil {
 			// We are not done, we need to respond with the tool response
