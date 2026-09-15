@@ -34,8 +34,12 @@ type MainWindow struct {
 	contextLabel  *widget.Label
 	costLabel     *widget.Label
 	wdLabel       *widget.Label
+	tokensLabel   *widget.Label
 	contextText   string
 	costText      string
+	cacheTokens   int64
+	inTokens      int64
+	outTokens     int64
 	sessionTokens int64
 	outer         *container.Split
 	inner         *container.Split
@@ -114,12 +118,16 @@ func (g *MainWindow) buildLayout() {
 		g.contextLabel = widget.NewLabel("")
 		g.costLabel = widget.NewLabel("")
 		g.wdLabel = widget.NewLabel("")
+		g.tokensLabel = widget.NewLabel("")
 		g.contextText = "-"
 		g.costText = "-"
+		g.cacheTokens = 0
+		g.inTokens = 0
+		g.outTokens = 0
 	}
 	g.refreshStatus()
 
-	infoRow := container.NewHBox(g.contextLabel, g.costLabel, g.wdLabel, g.status)
+	infoRow := container.NewHBox(g.contextLabel, g.costLabel, g.wdLabel, g.status, g.tokensLabel)
 	bar := container.NewBorder(nil, nil, nil, nil, infoRow)
 	g.win.SetContent(container.NewBorder(nil, bar, nil, nil, g.outer))
 	g.win.SetMainMenu(g.Menu())
@@ -136,6 +144,7 @@ func (g *MainWindow) refreshStatus() {
 	g.contextLabel.SetText(tr.ContextLabel + ": " + g.contextText)
 	g.costLabel.SetText(tr.CostLabel + ": " + g.costText)
 	g.wdLabel.SetText(tr.GUIWDLabel + ": " + wd)
+	g.tokensLabel.SetText(fmt.Sprintf(tr.GUITokensLabel, g.cacheTokens, g.inTokens, g.outTokens))
 }
 
 // applyLanguage switches the UI language, persists it, and rebuilds the layout
@@ -174,6 +183,9 @@ func (g *MainWindow) contextSummary() string {
 
 func (g *MainWindow) updateCost(s session.Session) {
 	g.sessionTokens = s.PromptTokens
+	g.cacheTokens = s.CacheTokens
+	g.inTokens = s.PromptTokens
+	g.outTokens = s.CompletionTokens
 	g.contextText = g.contextSummary()
 	// Session costs are normalized to CNY by the agent layer (cnyRate), so the
 	// display reads them directly without an extra conversion.

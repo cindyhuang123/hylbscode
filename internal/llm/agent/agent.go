@@ -647,6 +647,7 @@ func (a *agent) TrackUsage(ctx context.Context, sessionID string, model models.M
 	sess.Cost += cost
 	sess.CompletionTokens = usage.OutputTokens + usage.CacheReadTokens
 	sess.PromptTokens = usage.InputTokens + usage.CacheCreationTokens
+	sess.CacheTokens = usage.CacheCreationTokens + usage.CacheReadTokens
 
 	_, err = a.sessions.Save(ctx, sess)
 	if err != nil {
@@ -793,6 +794,7 @@ func (a *agent) summarizeSession(ctx context.Context, sessionID string) error {
 	oldSession.SummaryMessageID = msg.ID
 	oldSession.CompletionTokens = response.Usage.OutputTokens
 	oldSession.PromptTokens = 0
+	oldSession.CacheTokens = 0
 	model := a.summarizeProvider.Model()
 	usage := response.Usage
 	cost := model.CostPer1MInCached/1e6*float64(usage.CacheCreationTokens) +

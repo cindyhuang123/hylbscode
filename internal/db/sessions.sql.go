@@ -18,6 +18,7 @@ INSERT INTO sessions (
     message_count,
     prompt_tokens,
     completion_tokens,
+    cache_tokens,
     cost,
     summary_message_id,
     updated_at,
@@ -30,10 +31,11 @@ INSERT INTO sessions (
     ?,
     ?,
     ?,
+    ?,
     null,
     strftime('%s', 'now'),
     strftime('%s', 'now')
-) RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id
+) RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cache_tokens, cost, updated_at, created_at, summary_message_id
 `
 
 type CreateSessionParams struct {
@@ -43,6 +45,7 @@ type CreateSessionParams struct {
 	MessageCount     int64          `json:"message_count"`
 	PromptTokens     int64          `json:"prompt_tokens"`
 	CompletionTokens int64          `json:"completion_tokens"`
+	CacheTokens      int64          `json:"cache_tokens"`
 	Cost             float64        `json:"cost"`
 }
 
@@ -54,6 +57,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		arg.MessageCount,
 		arg.PromptTokens,
 		arg.CompletionTokens,
+		arg.CacheTokens,
 		arg.Cost,
 	)
 	var i Session
@@ -64,6 +68,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.MessageCount,
 		&i.PromptTokens,
 		&i.CompletionTokens,
+		&i.CacheTokens,
 		&i.Cost,
 		&i.UpdatedAt,
 		&i.CreatedAt,
@@ -98,6 +103,7 @@ func (q *Queries) GetSessionByID(ctx context.Context, id string) (Session, error
 		&i.MessageCount,
 		&i.PromptTokens,
 		&i.CompletionTokens,
+		&i.CacheTokens,
 		&i.Cost,
 		&i.UpdatedAt,
 		&i.CreatedAt,
@@ -107,7 +113,7 @@ func (q *Queries) GetSessionByID(ctx context.Context, id string) (Session, error
 }
 
 const listSessions = `-- name: ListSessions :many
-SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id
+SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cache_tokens, cost, updated_at, created_at, summary_message_id
 FROM sessions
 WHERE parent_session_id is NULL
 ORDER BY created_at DESC
@@ -129,6 +135,7 @@ func (q *Queries) ListSessions(ctx context.Context) ([]Session, error) {
 			&i.MessageCount,
 			&i.PromptTokens,
 			&i.CompletionTokens,
+			&i.CacheTokens,
 			&i.Cost,
 			&i.UpdatedAt,
 			&i.CreatedAt,
@@ -153,16 +160,18 @@ SET
     title = ?,
     prompt_tokens = ?,
     completion_tokens = ?,
+    cache_tokens = ?,
     summary_message_id = ?,
     cost = ?
 WHERE id = ?
-RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id
+RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cache_tokens, cost, updated_at, created_at, summary_message_id
 `
 
 type UpdateSessionParams struct {
 	Title            string         `json:"title"`
 	PromptTokens     int64          `json:"prompt_tokens"`
 	CompletionTokens int64          `json:"completion_tokens"`
+	CacheTokens      int64          `json:"cache_tokens"`
 	SummaryMessageID sql.NullString `json:"summary_message_id"`
 	Cost             float64        `json:"cost"`
 	ID               string         `json:"id"`
@@ -173,6 +182,7 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		arg.Title,
 		arg.PromptTokens,
 		arg.CompletionTokens,
+		arg.CacheTokens,
 		arg.SummaryMessageID,
 		arg.Cost,
 		arg.ID,
@@ -185,6 +195,7 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		&i.MessageCount,
 		&i.PromptTokens,
 		&i.CompletionTokens,
+		&i.CacheTokens,
 		&i.Cost,
 		&i.UpdatedAt,
 		&i.CreatedAt,
