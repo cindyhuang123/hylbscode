@@ -466,11 +466,15 @@ func (o *openaiClient) usage(completion openai.ChatCompletion) TokenUsage {
 	cachedTokens := completion.Usage.PromptTokensDetails.CachedTokens
 	inputTokens := completion.Usage.PromptTokens - cachedTokens
 
+	// DeepSeek returns prompt_cache_hit_tokens as a top-level usage field
+	// not included in go-openai's PromptTokensDetails; extract via raw JSON.
+	cacheRead := gjson.Get(completion.Usage.RawJSON(), "prompt_cache_hit_tokens").Int()
+
 	return TokenUsage{
 		InputTokens:         inputTokens,
 		OutputTokens:        completion.Usage.CompletionTokens,
-		CacheCreationTokens: 0, // OpenAI doesn't provide this directly
-		CacheReadTokens:     cachedTokens,
+		CacheCreationTokens: 0,
+		CacheReadTokens:     cachedTokens + cacheRead,
 	}
 }
 
