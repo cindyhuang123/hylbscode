@@ -263,7 +263,7 @@ func (o *openaiClient) send(ctx context.Context, messages []message.Message, too
 		return &ProviderResponse{
 			Content:      content,
 			ToolCalls:    toolCalls,
-			Usage:        o.usage(*openaiResponse),
+			Usage:        o.usage(*openaiResponse, ""),
 			FinishReason: finishReason,
 		}, nil
 	}
@@ -309,6 +309,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 			acc := openai.ChatCompletionAccumulator{}
 			currentContent := ""
 			toolCalls := make([]message.ToolCall, 0)
+			var lastUsageJSON string
 
 			for {
 				nextCh := make(chan bool, 1)
@@ -336,6 +337,13 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 				}
 				chunk := openaiStream.Current()
 				acc.AddChunk(chunk)
+				// openai-go's ChatCompletionAccumulator copies usage numbers but
+				// drops the chunk's raw JSON, so cache fields (DeepSeek's
+				// prompt_cache_hit_tokens) parsed from Usage.RawJSON() would be
+				// lost. Keep the raw usage JSON of the final chunk ourselves.
+				if u := gjson.Get(chunk.RawJSON(), "usage"); u.Exists() {
+					lastUsageJSON = u.Raw
+				}
 
 				if cfg.Debug && sessionId != "" {
 					logging.AppendToStreamSessionLogJson(sessionId, requestSeqId, chunk)
@@ -377,7 +385,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 					Response: &ProviderResponse{
 						Content:      currentContent,
 						ToolCalls:    toolCalls,
-						Usage:        o.usage(acc.ChatCompletion),
+						Usage:        o.usage(acc.ChatCompletion, lastUsageJSON),
 						FinishReason: finishReason,
 					},
 				}
@@ -462,13 +470,18 @@ func (o *openaiClient) toolCalls(completion openai.ChatCompletion) []message.Too
 	return toolCalls
 }
 
-func (o *openaiClient) usage(completion openai.ChatCompletion) TokenUsage {
+func (o *openaiClient) usage(completion openai.ChatCompletion, usageRawJSON string) TokenUsage {
 	cachedTokens := completion.Usage.PromptTokensDetails.CachedTokens
 	inputTokens := completion.Usage.PromptTokens - cachedTokens
 
-	// DeepSeek returns prompt_cache_hit_tokens as a top-level usage field
-	// not included in go-openai's PromptTokensDetails; extract via raw JSON.
-	cacheRead := gjson.Get(completion.Usage.RawJSON(), "prompt_cache_hit_tokens").Int()
+	// DeepSeek returns prompt_cache_hit_tokens in the usage section of the
+	// response; it is not included in openai-go's PromptTokensDetails, so
+	// extract it from raw JSON. Streaming responses lose the raw JSON inside
+	// the SDK's accumulator, hence the usageRawJSON parameter.
+	cacheRead := gjson.Get(usageRawJSON, "prompt_cache_hit_tokens").Int()
+	if cacheRead == 0 {
+		cacheRead = gjson.Get(completion.Usage.RawJSON(), "prompt_cache_hit_tokens").Int()
+	}
 
 	return TokenUsage{
 		InputTokens:         inputTokens,
