@@ -143,7 +143,7 @@ func (g *MainWindow) refreshStatus() {
 	g.status.SetText(g.modelLabel())
 	g.contextLabel.SetText(tr.ContextLabel + ": " + g.contextText)
 	g.costLabel.SetText(tr.CostLabel + ": " + g.costText)
-	g.wdLabel.SetText(tr.GUIWDLabel + ": " + wd)
+	g.wdLabel.SetText(tr.GUIWDLabel + ": " + shortenPath(wd))
 	g.tokensLabel.SetText(fmt.Sprintf(tr.GUITokensLabel,
 		formatTokens(g.cacheTokens), formatTokens(g.inTokens), formatTokens(g.outTokens)))
 }
@@ -192,9 +192,22 @@ func (g *MainWindow) contextSummary() string {
 		window = m.ContextWindow
 	}
 	if window > 0 {
-		return fmt.Sprintf("%d / %d tokens", g.sessionTokens, window)
+		return fmt.Sprintf("%s/%s", formatTokens(g.sessionTokens), formatTokens(window))
 	}
-	return fmt.Sprintf("%d tokens", g.sessionTokens)
+	return formatTokens(g.sessionTokens)
+}
+
+// shortenPath keeps a working-directory path short so the status bar cannot
+// grow wider than the screen (fyne's fitContent would expand the window past
+// the monitor when the content MinSize exceeds it).
+func shortenPath(path string) string {
+	const maxLen = 44
+	if len(path) <= maxLen {
+		return path
+	}
+	head := path[:18]
+	tail := path[len(path)-20:]
+	return head + "..." + tail
 }
 
 func (g *MainWindow) updateCost(s session.Session) {
@@ -385,6 +398,7 @@ func (g *MainWindow) toggleLeftBar() {
 	}
 	g.outer.Refresh()
 	g.viewMenu.Refresh()
+	g.clampToScreen()
 }
 
 // toggleRightBar shows or hides the right info panel and syncs the View menu
@@ -400,6 +414,19 @@ func (g *MainWindow) toggleRightBar() {
 	}
 	g.inner.Refresh()
 	g.viewMenu.Refresh()
+	g.clampToScreen()
+}
+
+// clampToScreen keeps the window inside the primary monitor's work area after
+// bars are toggled; without it fyne's fitContent may keep a window wider than
+// the screen when the layout MinSize changes.
+func (g *MainWindow) clampToScreen() {
+	if sz, ok := maximizedSize(); ok {
+		cur := g.win.Canvas().Size()
+		if cur.Width > sz.Width || cur.Height > sz.Height {
+			g.win.Resize(sz)
+		}
+	}
 }
 
 func (g *MainWindow) Show() {

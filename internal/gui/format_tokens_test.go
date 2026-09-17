@@ -21,3 +21,18 @@ func TestFormatTokens(t *testing.T) {
 		}
 	}
 }
+
+func TestShortenPath(t *testing.T) {
+	short := "/home/u/proj"
+	if got := shortenPath(short); got != short {
+		t.Errorf("short path modified: %q", got)
+	}
+	long := "/home/cindy/TMP/lbs_code_dir/20260914_1814/very/long/sub/dir/path/here"
+	got := shortenPath(long)
+	if len(got) > 44+3+1 {
+		t.Errorf("shortenPath result too long: %d chars (%q)", len(got), got)
+	}
+	if got[:18] != long[:18] || got[len(got)-20:] != long[len(long)-20:] {
+		t.Errorf("shortenPath lost head/tail: %q", got)
+	}
+}
