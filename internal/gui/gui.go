@@ -223,6 +223,9 @@ func (g *MainWindow) updateCost(s session.Session) {
 }
 
 func (g *MainWindow) selectSession(sessionID string) {
+	logging.Info("gui: select session", "session", sessionID,
+		"win", fmt.Sprintf("%dx%d", int(g.win.Canvas().Size().Width), int(g.win.Canvas().Size().Height)),
+		"min", fmt.Sprintf("%dx%d", int(g.win.Content().MinSize().Width), int(g.win.Content().MinSize().Height)))
 	g.chat.SetCurrent(sessionID)
 	g.sidebar.SetCurrent(sessionID)
 	g.todo.SetSession(sessionID)
@@ -424,6 +427,7 @@ func (g *MainWindow) clampToScreen() {
 	if sz, ok := maximizedSize(); ok {
 		cur := g.win.Canvas().Size()
 		if cur.Width > sz.Width || cur.Height > sz.Height {
+			logging.Warn("gui: clamp window to work area", "cur", fmt.Sprintf("%dx%d", int(cur.Width), int(cur.Height)), "limit", fmt.Sprintf("%dx%d", int(sz.Width), int(sz.Height)))
 			g.win.Resize(sz)
 		}
 	}

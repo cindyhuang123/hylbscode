@@ -58,6 +58,7 @@ func newToolBlock(name string, noOutput bool) *ToolBlock {
 		}),
 		output: widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true}),
 	}
+	t.title.Wrapping = fyne.TextWrapWord
 	t.output.Wrapping = fyne.TextWrapWord
 	t.output.Selectable = true
 	t.outputRect = canvas.NewRectangle(theme.InputBackgroundColor())

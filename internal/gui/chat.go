@@ -728,6 +728,10 @@ func (c *ChatArea) renderNow() {
 	// true bottom once the new height is known.
 	c.scroll.ScrollToBottom()
 	fyne.Do(c.scroll.ScrollToBottom)
+	if min := c.output.MinSize(); min.Width > 900 || min.Height > 6000 {
+		logging.Warn("chatarea: wide/tall content", "session", c.current, "views", len(views),
+			"min_w", min.Width, "min_h", min.Height, "took", time.Since(start))
+	}
 	logging.Debug("chatarea: renderNow done", "session", c.current, "views", len(views), "took", time.Since(start))
 }
 
