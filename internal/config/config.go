@@ -94,14 +94,6 @@ type ShellConfig struct {
 	Args []string `json:"args,omitempty"`
 }
 
-// ToolsConfig lists optional tools that are not mounted by default.
-// Each entry is a tool name ("sourcegraph", "fetch") that will be added to
-// the agent's tool set when listed, keeping their schema (which costs prompt
-// tokens on every request) out unless explicitly opted in.
-type ToolsConfig struct {
-	Enabled []string `json:"enabled,omitempty"`
-}
-
 // Config is the main configuration structure for the application.
 type Config struct {
 	Data                 Data                              `json:"data"`
@@ -116,7 +108,6 @@ type Config struct {
 	TUI                  TUIConfig                         `json:"tui"`
 	GUI                  GUIConfig                         `json:"gui"`
 	Shell                ShellConfig                       `json:"shell,omitempty"`
-	Tools                ToolsConfig                       `json:"tools,omitempty"`
 	AutoCompact          bool                              `json:"autoCompact,omitempty"`
 	AutoCompactThreshold float64                           `json:"autoCompactThreshold,omitempty"`
 	ExtraModels          []models.Model                    `json:"extraModels,omitempty"`
@@ -271,7 +262,6 @@ func setDefaults(debug bool) {
 	viper.SetDefault("gui.cnyRate", 7.2)
 	viper.SetDefault("autoCompact", true)
 	viper.SetDefault("autoCompactThreshold", 0.7)
-	viper.SetDefault("tools.enabled", []string{})
 
 	// Set default shell from environment or fallback to /bin/bash
 	shellPath := os.Getenv("SHELL")
