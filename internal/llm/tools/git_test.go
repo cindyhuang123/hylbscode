@@ -22,11 +22,11 @@ func TestGitReadOnlySubcommands(t *testing.T) {
 
 func TestShellQuote(t *testing.T) {
 	cases := map[string]string{
-		"status":       "'status'",
-		"fix: thing":   `'fix: thing'`,
-		"it's":         `'it'\''s'`,
-		"a b":          "'a b'",
-		"foo\"bar":     `'foo"bar'`,
+		"status":     "'status'",
+		"fix: thing": `'fix: thing'`,
+		"it's":       `'it'\''s'`,
+		"a b":        "'a b'",
+		"foo\"bar":   `'foo"bar'`,
 	}
 	for in, want := range cases {
 		if got := shellQuote(in); got != want {
