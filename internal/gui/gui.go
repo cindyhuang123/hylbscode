@@ -144,7 +144,23 @@ func (g *MainWindow) refreshStatus() {
 	g.contextLabel.SetText(tr.ContextLabel + ": " + g.contextText)
 	g.costLabel.SetText(tr.CostLabel + ": " + g.costText)
 	g.wdLabel.SetText(tr.GUIWDLabel + ": " + wd)
-	g.tokensLabel.SetText(fmt.Sprintf(tr.GUITokensLabel, g.cacheTokens, g.inTokens, g.outTokens))
+	g.tokensLabel.SetText(fmt.Sprintf(tr.GUITokensLabel,
+		formatTokens(g.cacheTokens), formatTokens(g.inTokens), formatTokens(g.outTokens)))
+}
+
+// formatTokens shortens large token counts (e.g. 12800 -> "12.8k") so the
+// status bar stays narrow and cannot push the window MinSize past the screen.
+func formatTokens(n int64) string {
+	switch {
+	case n >= 1_000_000:
+		return fmt.Sprintf("%.1fM", float64(n)/1_000_000)
+	case n >= 10_000:
+		return fmt.Sprintf("%.1fk", float64(n)/1000)
+	case n >= 1000:
+		return fmt.Sprintf("%.1fk", float64(n)/1000)
+	default:
+		return fmt.Sprintf("%d", n)
+	}
 }
 
 // applyLanguage switches the UI language, persists it, and rebuilds the layout

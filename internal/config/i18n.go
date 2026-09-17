@@ -118,7 +118,7 @@ type Translation struct {
 	GUIVersionLabel string
 	GUIModelLabel   string
 	GUIWDLabel      string
-	GUITokensLabel  string // "Cache:%d In:%d Out:%d" per locale.
+	GUITokensLabel  string // "Cache:%s In:%s Out:%s" per locale.
 
 	// GUI input / sidebar.
 	GUIInputPlaceholder   string
@@ -276,7 +276,7 @@ var (
 			GUIVersionLabel: "Version",
 			GUIModelLabel:   "Model",
 			GUIWDLabel:      "WD",
-			GUITokensLabel:  "Cache:%d  In:%d  Out:%d",
+			GUITokensLabel:  "Cache:%s In:%s Out:%s",
 
 			GUIInputPlaceholder:   "Type a message... Enter to send, Shift+Enter for newline",
 			GUINewSession:         "New Session",
@@ -426,7 +426,7 @@ var (
 			GUIVersionLabel: "版本",
 			GUIModelLabel:   "模型",
 			GUIWDLabel:      "目录",
-			GUITokensLabel:  "缓存:%d  输入:%d  输出:%d",
+			GUITokensLabel:  "缓存:%s 输入:%s 输出:%s",
 
 			GUIInputPlaceholder:   "输入消息... 回车发送, Shift+回车换行",
 			GUINewSession:         "新会话",
