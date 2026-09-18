@@ -2,7 +2,9 @@ package permission
 
 import (
 	"errors"
+	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/cindyhuang123/hylbscode/internal/pubsub"
@@ -84,7 +86,8 @@ func (s *permissionService) Request(opts CreatePermissionRequest) bool {
 	}
 
 	for _, p := range s.sessionPermissions {
-		if p.ToolName == permission.ToolName && p.Action == permission.Action && p.SessionID == permission.SessionID && p.Path == permission.Path {
+		if p.ToolName == permission.ToolName && p.Action == permission.Action &&
+			p.SessionID == permission.SessionID && pathWithin(permission.Path, p.Path) {
 			return true
 		}
 	}
@@ -103,6 +106,22 @@ func (s *permissionService) Request(opts CreatePermissionRequest) bool {
 
 func (s *permissionService) AutoApproveSession(sessionID string) {
 	s.autoApproveSessions = append(s.autoApproveSessions, sessionID)
+}
+
+// pathWithin reports whether target equals root or lies anywhere under it,
+// so a confirmed directory also covers its subtree.
+func pathWithin(target, root string) bool {
+	if root == "" {
+		return false
+	}
+	if target == root {
+		return true
+	}
+	rel, err := filepath.Rel(root, target)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 func NewPermissionService() Service {

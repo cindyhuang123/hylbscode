@@ -111,6 +111,15 @@ func workingDirectory() string {
 	return wd
 }
 
+// permissionRootFor returns the directory that a granted permission should
+// cover: the path itself when it is a directory, otherwise its parent.
+func permissionRootFor(path string) string {
+	if fi, err := os.Stat(path); err == nil && fi.IsDir() {
+		return path
+	}
+	return filepath.Dir(path)
+}
+
 // confirmPathAccess asks the user for permission when the given absolute path
 // lies outside the working directory and /tmp. It returns (true, nil) when the
 // access is allowed without prompting or granted by the user; (false, nil)
@@ -126,7 +135,7 @@ func confirmPathAccess(ctx context.Context, perms permission.Service, toolName, 
 	if sessionID == "" || messageID == "" {
 		return false, nil
 	}
-	dir := filepath.Dir(absPath)
+	dir := permissionRootFor(absPath)
 	p := perms.Request(permission.CreatePermissionRequest{
 		SessionID:   sessionID,
 		Path:        dir,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -283,7 +282,7 @@ func (b *bashTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 	if isDangerous {
 		path := config.WorkingDirectory()
 		if externalPath != "" {
-			path = filepath.Dir(externalPath)
+			path = permissionRootFor(externalPath)
 		}
 		p := b.permissions.Request(
 			permission.CreatePermissionRequest{
