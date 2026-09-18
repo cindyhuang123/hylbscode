@@ -32,11 +32,9 @@ type MainWindow struct {
 	sessionPanel  *SessionPanel
 	status        *widget.Label
 	contextLabel  *widget.Label
-	costLabel     *widget.Label
 	wdLabel       *widget.Label
 	tokensLabel   *widget.Label
 	contextText   string
-	costText      string
 	cacheTokens   int64
 	inTokens      int64
 	outTokens     int64
@@ -116,18 +114,16 @@ func (g *MainWindow) buildLayout() {
 	if g.contextLabel == nil {
 		g.status = widget.NewLabel(g.modelLabel())
 		g.contextLabel = widget.NewLabel("")
-		g.costLabel = widget.NewLabel("")
 		g.wdLabel = widget.NewLabel("")
 		g.tokensLabel = widget.NewLabel("")
 		g.contextText = "-"
-		g.costText = "-"
 		g.cacheTokens = 0
 		g.inTokens = 0
 		g.outTokens = 0
 	}
 	g.refreshStatus()
 
-	infoRow := container.NewHBox(g.contextLabel, g.costLabel, g.wdLabel, g.status, g.tokensLabel)
+	infoRow := container.NewHBox(g.contextLabel, g.wdLabel, g.status, g.tokensLabel)
 	bar := container.NewBorder(nil, nil, nil, nil, infoRow)
 	g.win.SetContent(container.NewBorder(nil, bar, nil, nil, g.outer))
 	g.win.SetMainMenu(g.Menu())
@@ -142,7 +138,6 @@ func (g *MainWindow) refreshStatus() {
 	}
 	g.status.SetText(g.modelLabel())
 	g.contextLabel.SetText(tr.ContextLabel + ": " + g.contextText)
-	g.costLabel.SetText(tr.CostLabel + ": " + g.costText)
 	g.wdLabel.SetText(tr.GUIWDLabel + ": " + shortenPath(wd))
 	g.tokensLabel.SetText(fmt.Sprintf(tr.GUITokensLabel,
 		formatTokens(g.cacheTokens), formatTokens(g.inTokens), formatTokens(g.outTokens)))
@@ -216,9 +211,6 @@ func (g *MainWindow) updateCost(s session.Session) {
 	g.inTokens = s.PromptTokens
 	g.outTokens = s.CompletionTokens
 	g.contextText = g.contextSummary()
-	// Session costs are normalized to CNY by the agent layer (cnyRate), so the
-	// display reads them directly without an extra conversion.
-	g.costText = fmt.Sprintf("¥%.2f", s.Cost)
 	g.refreshStatus()
 }
 
