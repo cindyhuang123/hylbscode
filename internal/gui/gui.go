@@ -356,7 +356,7 @@ func (g *MainWindow) requestQuit() {
 // saveSplitRatios persists the current split offsets so the window layout
 // survives a restart.
 func (g *MainWindow) saveSplitRatios() {
-	inner, outer := g.inner.Offset(), g.outer.Offset()
+	inner, outer := g.inner.Offset, g.outer.Offset
 	if err := config.UpdateSplitRatios(inner, outer); err != nil {
 		logging.Info("gui: save split ratios", "error", err.Error())
 		return
