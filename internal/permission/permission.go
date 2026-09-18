@@ -2,11 +2,9 @@ package permission
 
 import (
 	"errors"
-	"path/filepath"
 	"slices"
 	"sync"
 
-	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/pubsub"
 	"github.com/google/uuid"
 )
@@ -75,13 +73,9 @@ func (s *permissionService) Request(opts CreatePermissionRequest) bool {
 	if slices.Contains(s.autoApproveSessions, opts.SessionID) {
 		return true
 	}
-	dir := filepath.Dir(opts.Path)
-	if dir == "." {
-		dir = config.WorkingDirectory()
-	}
 	permission := PermissionRequest{
 		ID:          uuid.New().String(),
-		Path:        dir,
+		Path:        opts.Path,
 		SessionID:   opts.SessionID,
 		ToolName:    opts.ToolName,
 		Description: opts.Description,

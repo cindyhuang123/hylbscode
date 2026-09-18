@@ -273,8 +273,8 @@ func (b *bashTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 
 	// Any command touching a path outside the working directory and /tmp
 	// requires confirmation, not just the dangerous-command list.
-	externalPath := externalPathInCommand(params.Command)
-	isDangerous = isDangerous || externalPath != ""
+	externalPath, needPathConfirm := analyzeCommandPaths(params.Command)
+	isDangerous = isDangerous || needPathConfirm
 
 	sessionID, messageID := GetContextValues(ctx)
 	if sessionID == "" || messageID == "" {

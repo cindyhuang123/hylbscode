@@ -36,6 +36,26 @@ func tokenize(cmd string) []string {
 	return tokens
 }
 
+// expandHome resolves ~, ~/x, $HOME, ${HOME} and $HOME/x tokens to absolute
+// paths. Tokens it cannot resolve report ok=false.
+func expandHome(token string) (string, bool) {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return "", false
+	}
+	switch {
+	case token == "~" || token == "$HOME" || token == "${HOME}":
+		return home, true
+	case strings.HasPrefix(token, "~/"):
+		return filepath.Join(home, token[len("~/"):]), true
+	case strings.HasPrefix(token, "$HOME/"):
+		return filepath.Join(home, token[len("$HOME/"):]), true
+	case strings.HasPrefix(token, "${HOME}/"):
+		return filepath.Join(home, token[len("${HOME}/"):]), true
+	}
+	return "", false
+}
+
 // resolveExistingPath returns the nearest existing ancestor of path, absolute
 // and cleaned. It returns ("", false) when no ancestor exists at all.
 func resolveExistingPath(p string) (string, bool) {
@@ -62,27 +82,42 @@ func trimTrailingPunct(s string) string {
 	return strings.TrimRight(s, ",;|&()")
 }
 
+func isRedirectOp(token string) bool {
+	switch token {
+	case ">", ">>", "<", "2>", "2>>", "&>", "&>>":
+		return true
+	}
+	return false
+}
+
 func stringHasPathForm(token string) bool {
-	if token == "" || strings.HasPrefix(token, "-") || strings.HasPrefix(token, "$") {
+	if token == "" || strings.HasPrefix(token, "-") {
 		return false
 	}
 	if strings.Contains(token, "=") {
 		return false
 	}
 	token = trimTrailingPunct(token)
-	if token == "" || token == "." || token == ".." || token == "~" {
+	if token == "" || token == "." || token == ".." {
 		return false
+	}
+	if strings.HasPrefix(token, "~") {
+		return true
+	}
+	if strings.HasPrefix(token, "$") {
+		return strings.Contains(token, "/") || token == "$HOME" || token == "${HOME}"
 	}
 	return strings.Contains(token, "/") || strings.HasPrefix(token, ".")
 }
 
-// externalPathInCommand returns the first path referenced by the command that
-// exists outside the working directory and /tmp, if any.
-func externalPathInCommand(cmd string) string {
+// analyzeCommandPaths returns the first path referenced by the command that
+// exists outside the working directory and /tmp, plus whether the command
+// requires confirmation. Unresolvable variable paths force confirmation.
+func analyzeCommandPaths(cmd string) (string, bool) {
 	tokens := tokenize(cmd)
 	nextIsRedirectTarget := false
 	for _, tok := range tokens {
-		if !nextIsRedirectTarget && (tok == ">" || tok == ">>" || tok == "<" || tok == "2>" || tok == "&>") {
+		if !nextIsRedirectTarget && isRedirectOp(tok) {
 			nextIsRedirectTarget = true
 			continue
 		}
@@ -95,13 +130,20 @@ func externalPathInCommand(cmd string) string {
 		if candidate == "" {
 			continue
 		}
+		if strings.HasPrefix(candidate, "~") || strings.HasPrefix(candidate, "$") {
+			expanded, ok := expandHome(candidate)
+			if !ok {
+				return "", true
+			}
+			candidate = expanded
+		}
 		abs, ok := resolveExistingPath(candidate)
 		if !ok {
 			continue
 		}
 		if !inWorkingDir(abs) {
-			return abs
+			return abs, true
 		}
 	}
-	return ""
+	return "", false
 }
