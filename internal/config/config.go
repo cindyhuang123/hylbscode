@@ -86,6 +86,8 @@ type GUIConfig struct {
 	CnyRate     float64 `json:"cnyRate,omitempty"`     // USD -> CNY rate for cost display
 	Font        string  `json:"font,omitempty"`        // ttf/otf font file path overriding the built-in UI font
 	ConfirmQuit *bool   `json:"confirmQuit,omitempty"` // 关闭窗口前是否弹确认; nil 表示默认确认
+	InnerSplit  float64 `json:"innerSplit,omitempty"`  // 会话/聊天左右分割比例, 0 表示默认
+	OuterSplit  float64 `json:"outerSplit,omitempty"`  // 聊天/右栏分割比例, 0 表示默认
 }
 
 // ShellConfig defines the configuration for the shell used by the bash tool.
@@ -1196,4 +1198,19 @@ func ConfigFilePaths() []string {
 	}
 	paths = append(paths, filepath.Join(".", fmt.Sprintf(".%s.json", appName)))
 	return paths
+}
+
+// UpdateSplitRatios persists the window split offsets (0..1 each) to the
+// config file so the layout survives restarts. A zero offset is stored as-is
+// too, matching the user's actual layout instead of the default.
+func UpdateSplitRatios(innerSplit, outerSplit float64) error {
+	if cfg == nil {
+		return fmt.Errorf("config not loaded")
+	}
+	cfg.GUI.InnerSplit = innerSplit
+	cfg.GUI.OuterSplit = outerSplit
+	return updateCfgFile(func(config *Config) {
+		config.GUI.InnerSplit = innerSplit
+		config.GUI.OuterSplit = outerSplit
+	})
 }

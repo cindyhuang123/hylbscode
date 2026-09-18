@@ -109,9 +109,9 @@ func (g *MainWindow) buildLayout() {
 	)
 	rightPanel := right
 	g.inner = container.NewHSplit(g.chat.Content(), rightPanel)
-	g.inner.SetOffset(0.72)
+	g.inner.SetOffset(splitOffset(config.Get().GUI.InnerSplit, 0.72))
 	g.outer = container.NewHSplit(g.sidebar.Content(), g.inner)
-	g.outer.SetOffset(0.2)
+	g.outer.SetOffset(splitOffset(config.Get().GUI.OuterSplit, 0.2))
 
 	if g.contextLabel == nil {
 		g.status = widget.NewLabel(g.modelLabel())
@@ -340,15 +340,38 @@ func (g *MainWindow) requestQuit() {
 	logging.Info("request quit")
 	cfg := config.Get()
 	if cfg.GUI.ConfirmQuit != nil && !*cfg.GUI.ConfirmQuit {
+		g.saveSplitRatios()
 		g.fyneApp.Quit()
 		return
 	}
 	tr := config.Tr()
 	dialog.ShowConfirm(tr.QuitQuestion, "", func(ok bool) {
 		if ok {
+			g.saveSplitRatios()
 			g.fyneApp.Quit()
 		}
 	}, g.win)
+}
+
+// saveSplitRatios persists the current split offsets so the window layout
+// survives a restart.
+func (g *MainWindow) saveSplitRatios() {
+	inner, outer := g.inner.Offset(), g.outer.Offset()
+	if err := config.UpdateSplitRatios(inner, outer); err != nil {
+		logging.Info("gui: save split ratios", "error", err.Error())
+		return
+	}
+	logging.Info("gui: save split ratios",
+		"inner", fmt.Sprintf("%.3f", inner),
+		"outer", fmt.Sprintf("%.3f", outer))
+}
+
+// splitOffset returns saved if it is a valid 0..1 ratio, default otherwise.
+func splitOffset(saved, def float64) float64 {
+	if saved > 0 && saved < 1 {
+		return saved
+	}
+	return def
 }
 
 // showShortcuts opens the keyboard shortcuts help dialog (Ctrl+?).
