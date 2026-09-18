@@ -498,17 +498,33 @@ func (e *editTool) replaceContent(ctx context.Context, filePath, oldString, newS
 }
 
 // inWorkingDir reports whether the given (possibly relative) path is inside
-// the project working directory. Files within the working tree can be edited
-// without a permission dialog; only paths outside it require confirmation.
+// the project working directory or /tmp. Paths inside those roots can be
+// touched without a permission dialog; everything else requires confirmation.
 func inWorkingDir(filePath string) bool {
 	abs := filePath
+	wd := ""
+	if config.IsLoaded() {
+		wd = config.WorkingDirectory()
+	}
 	if !filepath.IsAbs(abs) {
-		abs = filepath.Join(config.WorkingDirectory(), abs)
+		if wd != "" {
+			abs = filepath.Join(wd, abs)
+		} else {
+			abs, _ = filepath.Abs(abs)
+		}
 	}
-	wd := filepath.Clean(config.WorkingDirectory())
-	rel, err := filepath.Rel(wd, abs)
-	if err != nil {
-		return false
+	abs = filepath.Clean(abs)
+	roots := []string{filepath.Clean(os.TempDir())}
+	if wd != "" {
+		roots = append(roots, filepath.Clean(wd))
+	} else if cwd, err := os.Getwd(); err == nil && cwd != "" {
+		roots = append(roots, filepath.Clean(cwd))
 	}
-	return rel != ".." && rel != "." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+	for _, root := range roots {
+		rel, err := filepath.Rel(root, abs)
+		if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }

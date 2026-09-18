@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
 	"github.com/cindyhuang123/hylbscode/internal/lsp"
+	"github.com/cindyhuang123/hylbscode/internal/permission"
 )
 
 type ViewParams struct {
@@ -22,7 +22,8 @@ type ViewParams struct {
 }
 
 type viewTool struct {
-	lspClients map[string]*lsp.Client
+	lspClients  map[string]*lsp.Client
+	permissions permission.Service
 }
 
 type ViewResponseMetadata struct {
@@ -67,9 +68,10 @@ TIPS:
 - When viewing large files, use the offset parameter to read specific sections`
 )
 
-func NewViewTool(lspClients map[string]*lsp.Client) BaseTool {
+func NewViewTool(lspClients map[string]*lsp.Client, permissions permission.Service) BaseTool {
 	return &viewTool{
-		lspClients,
+		lspClients:  lspClients,
+		permissions: permissions,
 	}
 }
 
@@ -110,7 +112,15 @@ func (v *viewTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 	// Handle relative paths
 	filePath := params.FilePath
 	if !filepath.IsAbs(filePath) {
-		filePath = filepath.Join(config.WorkingDirectory(), filePath)
+		filePath = filepath.Join(workingDirectory(), filePath)
+	}
+
+	ok, err := confirmPathAccess(ctx, v.permissions, ViewToolName, "read", filePath)
+	if err != nil {
+		return ToolResponse{}, err
+	}
+	if !ok {
+		return ToolResponse{}, permission.ErrorPermissionDenied
 	}
 
 	// Check if file exists

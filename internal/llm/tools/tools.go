@@ -3,6 +3,11 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
+
+	"github.com/cindyhuang123/hylbscode/internal/config"
+	"github.com/cindyhuang123/hylbscode/internal/permission"
 )
 
 type ToolInfo struct {
@@ -94,4 +99,43 @@ func GetStreamCallback(ctx context.Context) StreamOutputFunc {
 		return cb
 	}
 	return nil
+}
+
+// workingDirectory returns the configured working directory, falling back to
+// the process working directory when the config is not loaded (unit tests).
+func workingDirectory() string {
+	if config.IsLoaded() {
+		return config.WorkingDirectory()
+	}
+	wd, _ := os.Getwd()
+	return wd
+}
+
+// confirmPathAccess asks the user for permission when the given absolute path
+// lies outside the working directory and /tmp. It returns (true, nil) when the
+// access is allowed without prompting or granted by the user; (false, nil)
+// when denied; or an error when the permission service is unavailable.
+func confirmPathAccess(ctx context.Context, perms permission.Service, toolName, action, absPath string) (bool, error) {
+	if inWorkingDir(absPath) {
+		return true, nil
+	}
+	if perms == nil {
+		return false, nil
+	}
+	sessionID, messageID := GetContextValues(ctx)
+	if sessionID == "" || messageID == "" {
+		return false, nil
+	}
+	dir := filepath.Dir(absPath)
+	p := perms.Request(permission.CreatePermissionRequest{
+		SessionID:   sessionID,
+		Path:        dir,
+		ToolName:    toolName,
+		Action:      action,
+		Description: "Access path outside working directory: " + absPath,
+		Params: EditPermissionsParams{
+			FilePath: absPath,
+		},
+	})
+	return p, nil
 }

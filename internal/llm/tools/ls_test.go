@@ -13,7 +13,7 @@ import (
 )
 
 func TestLsTool_Info(t *testing.T) {
-	tool := NewLsTool()
+	tool := NewLsTool(nil)
 	info := tool.Info()
 
 	assert.Equal(t, LSToolName, info.Name)
@@ -68,7 +68,7 @@ func TestLsTool_Run(t *testing.T) {
 	}
 
 	t.Run("lists directory successfully", func(t *testing.T) {
-		tool := NewLsTool()
+		tool := NewLsTool(nil)
 		params := LSParams{
 			Path: tempDir,
 		}
@@ -101,7 +101,7 @@ func TestLsTool_Run(t *testing.T) {
 	})
 
 	t.Run("handles non-existent path", func(t *testing.T) {
-		tool := NewLsTool()
+		tool := NewLsTool(nil)
 		params := LSParams{
 			Path: filepath.Join(tempDir, "non_existent_dir"),
 		}
@@ -123,7 +123,7 @@ func TestLsTool_Run(t *testing.T) {
 		// For this test, we need to mock the config.WorkingDirectory function
 		// Since we can't easily do that, we'll just check that the response doesn't contain an error message
 
-		tool := NewLsTool()
+		tool := NewLsTool(nil)
 		params := LSParams{
 			Path: "",
 		}
@@ -145,7 +145,7 @@ func TestLsTool_Run(t *testing.T) {
 	})
 
 	t.Run("handles invalid parameters", func(t *testing.T) {
-		tool := NewLsTool()
+		tool := NewLsTool(nil)
 		call := ToolCall{
 			Name:  LSToolName,
 			Input: "invalid json",
@@ -157,7 +157,7 @@ func TestLsTool_Run(t *testing.T) {
 	})
 
 	t.Run("respects ignore patterns", func(t *testing.T) {
-		tool := NewLsTool()
+		tool := NewLsTool(nil)
 		params := LSParams{
 			Path:   tempDir,
 			Ignore: []string{"file1.txt", "dir1"},
@@ -195,7 +195,7 @@ func TestLsTool_Run(t *testing.T) {
 		err = os.Chdir(parentDir)
 		require.NoError(t, err)
 
-		tool := NewLsTool()
+		tool := NewLsTool(nil)
 		params := LSParams{
 			Path: filepath.Base(tempDir),
 		}

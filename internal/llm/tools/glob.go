@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/fileutil"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
+	"github.com/cindyhuang123/hylbscode/internal/permission"
 )
 
 const (
@@ -63,10 +63,14 @@ type GlobResponseMetadata struct {
 	Truncated     bool `json:"truncated"`
 }
 
-type globTool struct{}
+type globTool struct {
+	permissions permission.Service
+}
 
-func NewGlobTool() BaseTool {
-	return &globTool{}
+func NewGlobTool(permissions permission.Service) BaseTool {
+	return &globTool{
+		permissions: permissions,
+	}
 }
 
 func (g *globTool) Info() ToolInfo {
@@ -99,7 +103,18 @@ func (g *globTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 
 	searchPath := params.Path
 	if searchPath == "" {
-		searchPath = config.WorkingDirectory()
+		searchPath = workingDirectory()
+	}
+	if !filepath.IsAbs(searchPath) {
+		searchPath = filepath.Join(workingDirectory(), searchPath)
+	}
+
+	ok, err := confirmPathAccess(ctx, g.permissions, GlobToolName, "read", searchPath)
+	if err != nil {
+		return ToolResponse{}, err
+	}
+	if !ok {
+		return ToolResponse{}, permission.ErrorPermissionDenied
 	}
 
 	files, truncated, err := globFiles(params.Pattern, searchPath, 100)

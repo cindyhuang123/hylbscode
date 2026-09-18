@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cindyhuang123/hylbscode/internal/config"
+	"github.com/cindyhuang123/hylbscode/internal/permission"
 )
 
 type LSParams struct {
@@ -28,7 +28,9 @@ type LSResponseMetadata struct {
 	Truncated     bool `json:"truncated"`
 }
 
-type lsTool struct{}
+type lsTool struct {
+	permissions permission.Service
+}
 
 const (
 	LSToolName    = "ls"
@@ -63,8 +65,10 @@ TIPS:
 - Combine with other tools for more effective exploration`
 )
 
-func NewLsTool() BaseTool {
-	return &lsTool{}
+func NewLsTool(permissions permission.Service) BaseTool {
+	return &lsTool{
+		permissions: permissions,
+	}
 }
 
 func (l *lsTool) Info() ToolInfo {
@@ -96,15 +100,23 @@ func (l *lsTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error) {
 
 	searchPath := params.Path
 	if searchPath == "" {
-		searchPath = config.WorkingDirectory()
+		searchPath = workingDirectory()
 	}
 
 	if !filepath.IsAbs(searchPath) {
-		searchPath = filepath.Join(config.WorkingDirectory(), searchPath)
+		searchPath = filepath.Join(workingDirectory(), searchPath)
 	}
 
 	if _, err := os.Stat(searchPath); os.IsNotExist(err) {
 		return NewTextErrorResponse(fmt.Sprintf("path does not exist: %s", searchPath)), nil
+	}
+
+	ok, err := confirmPathAccess(ctx, l.permissions, LSToolName, "read", searchPath)
+	if err != nil {
+		return ToolResponse{}, err
+	}
+	if !ok {
+		return ToolResponse{}, permission.ErrorPermissionDenied
 	}
 
 	files, truncated, err := listDirectory(searchPath, params.Ignore, MaxLSFiles)

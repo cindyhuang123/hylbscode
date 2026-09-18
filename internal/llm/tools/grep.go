@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/fileutil"
+	"github.com/cindyhuang123/hylbscode/internal/permission"
 )
 
 type GrepParams struct {
@@ -37,7 +37,9 @@ type GrepResponseMetadata struct {
 	Truncated       bool `json:"truncated"`
 }
 
-type grepTool struct{}
+type grepTool struct {
+	permissions permission.Service
+}
 
 const (
 	GrepToolName    = "grep"
@@ -79,8 +81,10 @@ TIPS:
 - Use literal_text=true when searching for exact text containing special characters like dots, parentheses, etc.`
 )
 
-func NewGrepTool() BaseTool {
-	return &grepTool{}
+func NewGrepTool(permissions permission.Service) BaseTool {
+	return &grepTool{
+		permissions: permissions,
+	}
 }
 
 func (g *grepTool) Info() ToolInfo {
@@ -139,7 +143,18 @@ func (g *grepTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 
 	searchPath := params.Path
 	if searchPath == "" {
-		searchPath = config.WorkingDirectory()
+		searchPath = workingDirectory()
+	}
+	if !filepath.IsAbs(searchPath) {
+		searchPath = filepath.Join(workingDirectory(), searchPath)
+	}
+
+	ok, err := confirmPathAccess(ctx, g.permissions, GrepToolName, "read", searchPath)
+	if err != nil {
+		return ToolResponse{}, err
+	}
+	if !ok {
+		return ToolResponse{}, permission.ErrorPermissionDenied
 	}
 
 	matches, truncated, err := searchFiles(searchPattern, searchPath, params.Include, 100)

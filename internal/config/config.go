@@ -147,6 +147,12 @@ var cfg *Config
 // Load initializes the configuration from environment variables and config files.
 // If debug is true, debug mode is enabled and log level is set to debug.
 // It returns an error if configuration loading fails.
+// IsLoaded reports whether the config has been loaded into the package-level
+// singleton. Tools use it to avoid panicking during unit tests.
+func IsLoaded() bool {
+	return cfg != nil
+}
+
 func Load(workingDir string, debug bool) (*Config, error) {
 	if cfg != nil {
 		return cfg, nil

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/llm/tools/shell"
 	"github.com/cindyhuang123/hylbscode/internal/permission"
 )
@@ -118,10 +117,10 @@ func (g *gitTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error) 
 
 	workDir := params.WorkingDirectory
 	if workDir == "" {
-		workDir = config.WorkingDirectory()
+		workDir = workingDirectory()
 	}
 
-	if !isReadOnly {
+	if !isReadOnly || !inWorkingDir(workDir) {
 		sessionID, messageID := GetContextValues(ctx)
 		if sessionID == "" || messageID == "" {
 			return ToolResponse{}, fmt.Errorf("session ID and message ID are required")
