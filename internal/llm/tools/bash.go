@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -270,15 +271,24 @@ func (b *bashTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 		}
 	}
 
+	// Any command touching a path outside the working directory and /tmp
+	// requires confirmation, not just the dangerous-command list.
+	externalPath := externalPathInCommand(params.Command)
+	isDangerous = isDangerous || externalPath != ""
+
 	sessionID, messageID := GetContextValues(ctx)
 	if sessionID == "" || messageID == "" {
 		return ToolResponse{}, fmt.Errorf("session ID and message ID are required for creating a new file")
 	}
 	if isDangerous {
+		path := config.WorkingDirectory()
+		if externalPath != "" {
+			path = filepath.Dir(externalPath)
+		}
 		p := b.permissions.Request(
 			permission.CreatePermissionRequest{
 				SessionID:   sessionID,
-				Path:        config.WorkingDirectory(),
+				Path:        path,
 				ToolName:    BashToolName,
 				Action:      "execute",
 				Description: fmt.Sprintf("Execute command: %s", params.Command),
