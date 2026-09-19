@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -75,16 +76,28 @@ func newPersistentShell(cwd string) *PersistentShell {
 		shellArgs = cfg.Shell.Args
 	}
 
+	// Windows 无 SHELL 环境变量与 /bin/bash, 用 COMSPEC(cmd.exe) 兜底.
 	if shellPath == "" {
-		shellPath = os.Getenv("SHELL")
-		if shellPath == "" {
-			shellPath = "/bin/bash"
+		if runtime.GOOS == "windows" {
+			shellPath = os.Getenv("COMSPEC")
+			if shellPath == "" {
+				shellPath = "cmd.exe"
+			}
+		} else {
+			shellPath = os.Getenv("SHELL")
+			if shellPath == "" {
+				shellPath = "/bin/bash"
+			}
 		}
 	}
 
-	// Default shell args
+	// cmd.exe 用 /D 跳过注册表 AutoRun 脚本 /Q 静默; POSIX shell 用 -l(login) 加载环境.
 	if len(shellArgs) == 0 {
-		shellArgs = []string{"-l"}
+		if runtime.GOOS == "windows" {
+			shellArgs = []string{"/D", "/Q"}
+		} else {
+			shellArgs = []string{"-l"}
+		}
 	}
 
 	cmd := exec.Command(shellPath, shellArgs...)
