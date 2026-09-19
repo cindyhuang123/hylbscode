@@ -52,6 +52,7 @@ var dangerousCommands = []string{
 	"dd", "mkfs", "fdisk", "parted",
 	"shutdown", "reboot", "poweroff", "halt",
 	"kill", "killall", "pkill",
+	"env", "printenv",
 }
 
 // tmpExemptCommands are path-based dangerous commands that are allowed to run
@@ -275,6 +276,18 @@ func (b *bashTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 	externalPath, needPathConfirm := analyzeCommandPaths(params.Command)
 	isDangerous = isDangerous || needPathConfirm
 
+	// Executing a script through a non-bash interpreter is un-auditable (the
+	// script body is opaque to path analysis), so it always requires
+	// confirmation even when the script lives inside the working directory.
+	// bash execution is trusted and falls back to the command-path analysis.
+	scriptPath, needScriptConfirm := analyzeScriptExecution(params.Command)
+	if needScriptConfirm {
+		isDangerous = true
+		if scriptPath != "" {
+			externalPath = scriptPath
+		}
+	}
+
 	sessionID, messageID := GetContextValues(ctx)
 	if sessionID == "" || messageID == "" {
 		return ToolResponse{}, fmt.Errorf("session ID and message ID are required for creating a new file")
@@ -369,9 +382,13 @@ func countLines(s string) int {
 }
 
 // isDangerousCommand reports whether cmd (lowercased) runs the given dangerous
-// binary, either as the first word or after a separator such as &&, ; or |.
+// binary, either as the first word(s) or after a separator such as &&, ; or |.
 func isDangerousCommand(cmdLower, binary string) bool {
 	if cmdLower == binary {
+		return true
+	}
+	binWords := strings.Fields(binary)
+	if binWordMatch(cmdLower, binWords) {
 		return true
 	}
 	for _, sep := range []string{"&&", "||", ";", "|"} {
@@ -380,6 +397,23 @@ func isDangerousCommand(cmdLower, binary string) bool {
 		}
 	}
 	return false
+}
+
+// binWordMatch reports whether cmd begins with the dangerous command as its
+// leading words (not a longer prefix thereof, e.g. "git pushd" must NOT match
+// "git push").
+func binWordMatch(cmdLower string, binWords []string) bool {
+	if len(binWords) == 0 || !strings.HasPrefix(cmdLower, binWords[0]) {
+		return false
+	}
+	rest := strings.TrimPrefix(cmdLower, binWords[0])
+	if len(binWords) == 1 {
+		return rest == "" || strings.HasPrefix(rest, " ") || strings.HasPrefix(rest, "\t")
+	}
+	if rest != "" && rest[0] != ' ' && rest[0] != '\t' {
+		return false
+	}
+	return strings.HasPrefix(strings.TrimLeft(rest, " \t"), binWords[1])
 }
 
 // isTmpExempt reports whether a path-based dangerous command operates only on

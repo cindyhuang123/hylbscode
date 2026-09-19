@@ -8,6 +8,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestAnalyzeScriptExecution(t *testing.T) {
+	// B: executing a script through anything that is not bash always requires
+	// confirmation, even when the script lives inside the working directory,
+	// because analyzeScriptExecution cannot audit the script body.
+	cases := []struct {
+		name     string
+		cmd      string
+		wantNeed bool
+	}{
+		{"bash script internal", "bash ./gen.sh", false},
+		{"sh script", "sh ./gen.sh", true},
+		{"direct script", "./gen.sh", true},
+		{"python script", "python3 ./gen.py", true},
+		{"node script", "node app.js", true},
+		{"ruby script", "ruby x.rb", true},
+		{"perl script", "perl x.pl", true},
+		{"php script", "php x.php", true},
+		{"bash -c inline", "bash -c 'ls /etc'", false},
+		{"python -c inline", "python3 -c 'print(1)'", true},
+		{"unresolvable var", "python3 $UNKNOWN/x.py", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, gotNeed := analyzeScriptExecution(tc.cmd)
+			assert.Equal(t, tc.wantNeed, gotNeed, "need for %q", tc.cmd)
+		})
+	}
+}
+
 func TestAnalyzeCommandPaths(t *testing.T) {
 	home, err := os.UserHomeDir()
 	assert.NoError(t, err)
