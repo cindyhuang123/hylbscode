@@ -263,24 +263,26 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 	case message.Tool:
 		style = fyne.TextStyle{Bold: true, Italic: true}
 	}
-	headerTxt := widget.NewRichText(&widget.TextSegment{
-		Text:  role,
-		Style: widget.RichTextStyle{ColorName: roleColor(m.Role), TextStyle: style},
-	})
-	timeTxt := widget.NewRichText(&widget.TextSegment{
-		Text:  time.UnixMilli(m.CreatedAt).Format("2006-01-02 15:04:05.000"),
-		Style: widget.RichTextStyle{ColorName: theme.ColorNameDisabled},
-	})
+	headerTxt := widget.NewRichText(
+		&widget.TextSegment{
+			Text:  role,
+			Style: widget.RichTextStyle{ColorName: roleColor(m.Role), TextStyle: style},
+		},
+		&widget.TextSegment{
+			Text:  "  " + time.UnixMilli(m.CreatedAt).Format("15:04:05.000"),
+			Style: widget.RichTextStyle{ColorName: theme.ColorNameDisabled},
+		},
+	)
 	// Assistant and user replies get a copy button: rich-text blocks are not
 	// selectable in Fyne, so copying the whole message is the reliable way out.
-	var header fyne.CanvasObject = container.NewVBox(timeTxt, headerTxt)
+	var header fyne.CanvasObject = headerTxt
 	if m.Role == message.Assistant || m.Role == message.User {
 		copyBtn := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
 			if txt := messageCopyText(m); txt != "" {
 				fyne.CurrentApp().Clipboard().SetContent(txt)
 			}
 		})
-		header = container.NewBorder(nil, nil, nil, copyBtn, header)
+		header = container.NewBorder(nil, nil, nil, copyBtn, headerTxt)
 	}
 
 	body := container.NewVBox()
@@ -409,10 +411,10 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			// Terminal marker; for text-bearing assistant replies, render the
 			// LLM latency (finish timestamp minus message creation time) so the
 			// final answer shows how long the model took to generate.
-			if m.Role == message.Assistant && hasText && p.Time > m.CreatedAt {
-				secs := p.Time - m.CreatedAt
+			if m.Role == message.Assistant && hasText && p.Time*1000 > m.CreatedAt {
+				ms := p.Time*1000 - m.CreatedAt
 				rt := widget.NewRichText(&widget.TextSegment{
-					Text:  "⏱ " + (time.Duration(secs) * time.Second).Truncate(time.Second).String(),
+					Text:  "⏱ " + (time.Duration(ms) * time.Millisecond).Truncate(time.Second).String(),
 					Style: widget.RichTextStyle{ColorName: theme.ColorNameDisabled, TextStyle: fyne.TextStyle{Italic: true}},
 				})
 				body.Add(rt)

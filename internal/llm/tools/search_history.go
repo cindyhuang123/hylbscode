@@ -93,7 +93,7 @@ func (t *searchHistoryTool) Run(ctx context.Context, call ToolCall) (ToolRespons
 	var output string
 	output = fmt.Sprintf("Found %d matching messages\n", len(results))
 	for _, r := range results {
-		ts := time.Unix(r.CreatedAt, 0).Format("2006-01-02 15:04")
+		ts := time.UnixMilli(r.CreatedAt).Format("2006-01-02 15:04")
 		output += fmt.Sprintf("\n[%s] %s\n%s\n", ts, r.Role, r.Snippet)
 	}
 

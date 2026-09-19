@@ -105,7 +105,7 @@ func (s *service) Update(ctx context.Context, message Message) error {
 	}
 	finishedAt := sql.NullInt64{}
 	if f := message.FinishPart(); f != nil {
-		finishedAt.Int64 = f.Time
+		finishedAt.Int64 = f.Time * 1000
 		finishedAt.Valid = true
 	}
 	err = s.q.UpdateMessage(ctx, db.UpdateMessageParams{
@@ -116,7 +116,7 @@ func (s *service) Update(ctx context.Context, message Message) error {
 	if err != nil {
 		return err
 	}
-	message.UpdatedAt = time.Now().Unix()
+	message.UpdatedAt = time.Now().UnixMilli()
 	s.Publish(pubsub.UpdatedEvent, message)
 	return nil
 }

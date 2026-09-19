@@ -20,7 +20,7 @@ INSERT INTO messages (
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, strftime('%s', 'now'), strftime('%s', 'now')
+    ?, ?, ?, ?, ?, CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER), CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)
 )
 RETURNING id, session_id, role, parts, model, created_at, updated_at, finished_at
 `
@@ -141,7 +141,7 @@ UPDATE messages
 SET
     parts = ?,
     finished_at = ?,
-    updated_at = strftime('%s', 'now')
+    updated_at = CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)
 WHERE id = ?
 `
 
