@@ -272,7 +272,7 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 	timeTxt := widget.NewRichText(
 		&widget.TextSegment{
 			Text:  time.UnixMilli(m.CreatedAt).Format("2006-01-02 15:04:05.000"),
-			Style: widget.RichTextStyle{ColorName: theme.ColorNameDisabled},
+			Style: widget.RichTextStyle{ColorName: roleColor(m.Role)},
 		},
 	)
 	// RichText places each TextSegment on its own line, so the timestamp must
