@@ -187,6 +187,8 @@ func roleColor(role message.MessageRole) fyne.ThemeColorName {
 	switch role {
 	case message.User:
 		return theme.ColorNamePrimary
+	case message.Assistant:
+		return theme.ColorNameSuccess
 	case message.Tool:
 		return theme.ColorNameWarning
 	default:
