@@ -267,16 +267,20 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 		Text:  role,
 		Style: widget.RichTextStyle{ColorName: roleColor(m.Role), TextStyle: style},
 	})
+	timeTxt := widget.NewRichText(&widget.TextSegment{
+		Text:  time.UnixMilli(m.CreatedAt).Format("2006-01-02 15:04:05.000"),
+		Style: widget.RichTextStyle{ColorName: theme.ColorNameDisabled},
+	})
 	// Assistant and user replies get a copy button: rich-text blocks are not
 	// selectable in Fyne, so copying the whole message is the reliable way out.
-	var header fyne.CanvasObject = headerTxt
+	var header fyne.CanvasObject = container.NewVBox(timeTxt, headerTxt)
 	if m.Role == message.Assistant || m.Role == message.User {
 		copyBtn := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
 			if txt := messageCopyText(m); txt != "" {
 				fyne.CurrentApp().Clipboard().SetContent(txt)
 			}
 		})
-		header = container.NewBorder(nil, nil, nil, copyBtn, headerTxt)
+		header = container.NewBorder(nil, nil, nil, copyBtn, header)
 	}
 
 	body := container.NewVBox()
