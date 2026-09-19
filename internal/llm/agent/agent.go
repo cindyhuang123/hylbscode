@@ -262,6 +262,28 @@ func emptyAssistant(m message.Message) bool {
 		len(m.ToolCalls()) == 0
 }
 
+// toolCallsAnswered reports whether every tool call in calls is answered by a
+// matching tool result somewhere in msgs. DeepSeek rejects assistant messages
+// whose tool_calls lack follow-up tool responses, which an interrupted stream
+// can leave behind.
+func toolCallsAnswered(msgs []message.Message, calls []message.ToolCall) bool {
+	if len(calls) == 0 {
+		return true
+	}
+	answered := make(map[string]bool, len(calls))
+	for _, m := range msgs {
+		for _, tr := range m.ToolResults() {
+			answered[tr.ToolCallID] = true
+		}
+	}
+	for _, c := range calls {
+		if !answered[c.ID] {
+			return false
+		}
+	}
+	return true
+}
+
 func (a *agent) processGeneration(ctx context.Context, sessionID, content string, attachmentParts []message.ContentPart) AgentEvent {
 	cfg := config.Get()
 	// List existing messages; if none, or the title is still the default
@@ -332,11 +354,25 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 	}
 	// A failed generation leaves an assistant message with only a finish part
 	// behind; replaying it as history is rejected by strict providers such as
-	// DeepSeek ("content or tool_calls must be set"), so drop empty ones.
+	// DeepSeek ("content or tool_calls must be set"), so drop empty ones. An
+	// interrupted stream can likewise leave orphaned tool_calls (assistant
+	// with no follow-up tool response) or orphaned tool results; DeepSeek
+	// rejects those too ("insufficient tool messages following tool_calls"),
+	// so drop unmatched pairs as well.
 	history := make([]message.Message, 0, len(msgs)+1)
-	for _, m := range msgs {
+	for i, m := range msgs {
 		if emptyAssistant(m) {
 			continue
+		}
+		switch m.Role {
+		case message.Assistant:
+			if calls := m.ToolCalls(); len(calls) > 0 && !toolCallsAnswered(msgs[i+1:], calls) {
+				continue
+			}
+		case message.Tool:
+			if i == 0 || msgs[i-1].Role != message.Assistant || !toolCallsAnswered(msgs[i:], msgs[i-1].ToolCalls()) {
+				continue
+			}
 		}
 		history = append(history, m)
 	}
