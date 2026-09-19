@@ -12,7 +12,11 @@ import (
 	"sync"
 	"syscall"
 
+	"fyne.io/fyne/v2"
 	fyneapp "fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/cindyhuang123/hylbscode/internal/app"
 	"github.com/cindyhuang123/hylbscode/internal/config"
@@ -20,11 +24,28 @@ import (
 	"github.com/cindyhuang123/hylbscode/internal/gui"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
 	"github.com/cindyhuang123/hylbscode/internal/skills"
+	"github.com/gofrs/flock"
 )
 
 func fatal(format string, args ...any) {
 	logging.ErrorPersist(format, args...)
 	fmt.Fprintf(os.Stderr, "error: "+format+"\n", args...)
+	os.Exit(1)
+}
+
+// alertAndExit shows a modal dialog explaining why the app cannot start (a
+// second instance in the same working directory) and exits when dismissed.
+func alertAndExit(message string) {
+	a := fyneapp.NewWithID("com.hylbscode.single-instance-alert")
+	w := a.NewWindow("hylbscode")
+	w.Resize(fyne.NewSize(420, 160))
+	d := dialog.NewInformation("hylbscode", message, w)
+	d.SetOnClosed(func() {
+		a.Quit()
+	})
+	w.SetContent(container.NewCenter(widget.NewLabel(message)))
+	d.Show()
+	w.ShowAndRun()
 	os.Exit(1)
 }
 
@@ -51,6 +72,18 @@ func main() {
 	// 日志同时写入 {data.directory}/hylbscode.log，方便离线排查 GUI 交互问题。
 	if err := os.MkdirAll(cfg.Data.Directory, 0o755); err != nil {
 		fatal("failed to create data directory for logs: %v", err)
+	}
+	// 同一工作目录只允许一个实例: 文件锁绑定工作目录, 进程退出时内核
+	// 自动释放, 无残留; 第二个实例检测到占用直接退出, 避免多窗口
+	// 并发读写同一数据库。
+	singleLock := flock.New(filepath.Join(cfg.Data.Directory, "single_instance.lock"))
+	held, err := singleLock.TryLock()
+	if err != nil {
+		logging.WarnPersist(fmt.Sprintf("single-instance lock unavailable: %v", err))
+	} else if held {
+		defer singleLock.Unlock()
+	} else {
+		alertAndExit("该工作目录下已有 hylbscode 窗口在运行，请勿重复打开。")
 	}
 	logFile, err := os.OpenFile(filepath.Join(cfg.Data.Directory, "hylbscode.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
