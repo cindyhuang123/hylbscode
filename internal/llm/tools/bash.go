@@ -251,40 +251,49 @@ func (b *bashTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 	}
 
 	baseCmd := strings.Fields(params.Command)[0]
-	for _, banned := range bannedCommands {
-		if strings.EqualFold(baseCmd, banned) {
-			return NewTextErrorResponse(fmt.Sprintf("command '%s' is not allowed", baseCmd)), nil
+	unrestricted := config.UnrestrictedMode()
+	if !unrestricted {
+		for _, banned := range bannedCommands {
+			if strings.EqualFold(baseCmd, banned) {
+				return NewTextErrorResponse(fmt.Sprintf("command '%s' is not allowed", baseCmd)), nil
+			}
 		}
 	}
 
 	isDangerous := false
-	cmdLower := strings.ToLower(strings.TrimSpace(params.Command))
+	var externalPath string
+	if !unrestricted {
+		cmdLower := strings.ToLower(strings.TrimSpace(params.Command))
 
-	for _, d := range dangerousCommands {
-		if isDangerousCommand(cmdLower, d) {
-			// Path-based commands that only touch /tmp (testing) are safe.
-			if isTmpExempt(cmdLower, d) {
-				continue
+		for _, d := range dangerousCommands {
+			if isDangerousCommand(cmdLower, d) {
+				// Path-based commands that only touch /tmp (testing) are safe.
+				if isTmpExempt(cmdLower, d) {
+					continue
+				}
+				isDangerous = true
+				break
 			}
-			isDangerous = true
-			break
 		}
-	}
 
-	// Any command touching a path outside the working directory and /tmp
-	// requires confirmation, not just the dangerous-command list.
-	externalPath, needPathConfirm := analyzeCommandPaths(params.Command)
-	isDangerous = isDangerous || needPathConfirm
+		// Any command touching a path outside the working directory and /tmp
+		// requires confirmation, not just the dangerous-command list.
+		var needPathConfirm bool
+		externalPath, needPathConfirm = analyzeCommandPaths(params.Command)
+		isDangerous = isDangerous || needPathConfirm
 
-	// Executing a script through a non-bash interpreter is un-auditable (the
-	// script body is opaque to path analysis), so it always requires
-	// confirmation even when the script lives inside the working directory.
-	// bash execution is trusted and falls back to the command-path analysis.
-	scriptPath, needScriptConfirm := analyzeScriptExecution(params.Command)
-	if needScriptConfirm {
-		isDangerous = true
-		if scriptPath != "" {
-			externalPath = scriptPath
+		// Executing a script through a non-bash interpreter is un-auditable (the
+		// script body is opaque to path analysis), so it always requires
+		// confirmation even when the script lives inside the working directory.
+		// bash execution is trusted and falls back to the command-path analysis.
+		var scriptPath string
+		var needScriptConfirm bool
+		scriptPath, needScriptConfirm = analyzeScriptExecution(params.Command)
+		if needScriptConfirm {
+			isDangerous = true
+			if scriptPath != "" {
+				externalPath = scriptPath
+			}
 		}
 	}
 

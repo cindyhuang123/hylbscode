@@ -96,6 +96,7 @@ type Translation struct {
 	GUISettingsItem   string
 	GUIQuitItem       string
 	GUIConfirmQuit    string
+	GUIUnrestricted   string
 	GUIThemeMenu      string
 	GUIThemeAuto      string
 	GUIThemeLight     string
@@ -255,6 +256,7 @@ var (
 			GUISettingsItem:   "Settings",
 			GUIQuitItem:       "Quit",
 			GUIConfirmQuit:    "Ask for confirmation when closing the window",
+			GUIUnrestricted:   "Allow all operations without confirmation",
 			GUIThemeMenu:      "Theme",
 			GUIThemeAuto:      "Auto",
 			GUIThemeLight:     "Light",
@@ -405,6 +407,7 @@ var (
 			GUISettingsItem:   "设置",
 			GUIQuitItem:       "退出",
 			GUIConfirmQuit:    "关闭窗口时询问是否确认",
+			GUIUnrestricted:   "完全放开所有操作权限（不再弹窗确认）",
 			GUIThemeMenu:      "主题",
 			GUIThemeAuto:      "自动",
 			GUIThemeLight:     "浅色",

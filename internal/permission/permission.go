@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/pubsub"
 	"github.com/google/uuid"
 )
@@ -72,6 +73,9 @@ func (s *permissionService) Deny(permission PermissionRequest) {
 }
 
 func (s *permissionService) Request(opts CreatePermissionRequest) bool {
+	if config.UnrestrictedMode() {
+		return true
+	}
 	if slices.Contains(s.autoApproveSessions, opts.SessionID) {
 		return true
 	}

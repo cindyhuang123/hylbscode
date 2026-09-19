@@ -39,7 +39,8 @@
   },
   "gui": {
     "theme": "dark",
-    "confirmQuit": true
+    "confirmQuit": true,
+    "unrestricted": false
   },
   "contextPaths": [
     "CLAUDE.md",

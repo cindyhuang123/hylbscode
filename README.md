@@ -64,6 +64,7 @@ make build             # 构建（需要 CGO：gcc + X11/Wayland 开发库）
 | `gui.theme` | `auto` / `light` / `dark` |
 | `gui.width` / `gui.height` | 显式指定窗口尺寸；留空则启动时系统级最大化 |
 | `gui.confirmQuit` | 关闭窗口是否弹确认（`true`/`false`，默认确认，可在文件菜单切换） |
+| `gui.unrestricted` | 完全放开所有操作权限（`true`/`false`，默认需确认，可在文件菜单切换）：bash 的路径/脚本/危险命令确认、banned 命令（curl/wget 等）及 view/edit/grep 等所有工具的权限弹窗全部跳过，**高风险** |
 | `gui.font` | ttf/otf 字体文件路径；加载前校验必需字形，缺失则回退系统字体 |
 | `extraModels` | 追加模型列表 |
 

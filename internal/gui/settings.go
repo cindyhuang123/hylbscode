@@ -179,6 +179,13 @@ func confirmQuitChecked() bool {
 	return cfg.GUI.ConfirmQuit == nil || *cfg.GUI.ConfirmQuit
 }
 
+// unrestrictedChecked reports whether all tool permission confirmations are
+// disabled; a nil config value means the default (confirmations required).
+func unrestrictedChecked() bool {
+	cfg := config.Get()
+	return cfg != nil && cfg.GUI.Unrestricted != nil && *cfg.GUI.Unrestricted
+}
+
 // Menu builds the main menu for the window.
 func (g *MainWindow) Menu() *fyne.MainMenu {
 	tr := config.Tr()
@@ -203,7 +210,21 @@ func (g *MainWindow) Menu() *fyne.MainMenu {
 		file.Refresh()
 	})
 	confirmQuitItem.Checked = confirmQuitChecked()
-	file = fyne.NewMenu(tr.GUIFileMenu, settings, providerCfg, extraModelsItem, confirmQuitItem, quit)
+
+	// 完全放开所有操作权限: 勾选后 bash 路径/脚本/危险命令、banned 命令及
+	// view/edit/grep 等所有工具的权限确认全部跳过, 不再弹窗。
+	var unrestrictedItem *fyne.MenuItem
+	unrestrictedItem = fyne.NewMenuItem(tr.GUIUnrestricted, func() {
+		next := !unrestrictedItem.Checked
+		if err := config.UpdateGUIUnrestricted(next); err != nil {
+			logging.Error("failed to update unrestricted: %v", err)
+			return
+		}
+		unrestrictedItem.Checked = next
+		file.Refresh()
+	})
+	unrestrictedItem.Checked = unrestrictedChecked()
+	file = fyne.NewMenu(tr.GUIFileMenu, settings, providerCfg, extraModelsItem, confirmQuitItem, unrestrictedItem, quit)
 
 	g.themeAuto = fyne.NewMenuItem(tr.GUIThemeAuto, func() { g.applyTheme("auto") })
 	g.themeLight = fyne.NewMenuItem(tr.GUIThemeLight, func() { g.applyTheme("light") })

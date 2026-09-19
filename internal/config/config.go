@@ -80,14 +80,15 @@ type TUIConfig struct {
 
 // GUIConfig defines the configuration for the Fyne desktop interface.
 type GUIConfig struct {
-	Theme       string  `json:"theme,omitempty"` // "auto", "light", or "dark"
-	Width       int     `json:"width,omitempty"`
-	Height      int     `json:"height,omitempty"`
-	CnyRate     float64 `json:"cnyRate,omitempty"`     // USD -> CNY rate for cost display
-	Font        string  `json:"font,omitempty"`        // ttf/otf font file path overriding the built-in UI font
-	ConfirmQuit *bool   `json:"confirmQuit,omitempty"` // 关闭窗口前是否弹确认; nil 表示默认确认
-	InnerSplit  float64 `json:"innerSplit,omitempty"`  // 会话/聊天左右分割比例, 0 表示默认
-	OuterSplit  float64 `json:"outerSplit,omitempty"`  // 聊天/右栏分割比例, 0 表示默认
+	Theme        string  `json:"theme,omitempty"` // "auto", "light", or "dark"
+	Width        int     `json:"width,omitempty"`
+	Height       int     `json:"height,omitempty"`
+	CnyRate      float64 `json:"cnyRate,omitempty"`      // USD -> CNY rate for cost display
+	Font         string  `json:"font,omitempty"`         // ttf/otf font file path overriding the built-in UI font
+	ConfirmQuit  *bool   `json:"confirmQuit,omitempty"`  // 关闭窗口前是否弹确认; nil 表示默认确认
+	Unrestricted *bool   `json:"unrestricted,omitempty"` // 完全放开所有工具权限确认(bash 路径/脚本/危险命令、banned、view/edit 等); nil 表示默认需确认
+	InnerSplit   float64 `json:"innerSplit,omitempty"`   // 会话/聊天左右分割比例, 0 表示默认
+	OuterSplit   float64 `json:"outerSplit,omitempty"`   // 聊天/右栏分割比例, 0 表示默认
 }
 
 // ShellConfig defines the configuration for the shell used by the bash tool.
@@ -1078,6 +1079,29 @@ func UpdateGUIConfirmQuit(confirm bool) error {
 	cfg.GUI.ConfirmQuit = &confirm
 	return updateCfgFile(func(config *Config) {
 		config.GUI.ConfirmQuit = &confirm
+	})
+}
+
+// UnrestrictedMode reports whether all tool permission confirmations are
+// disabled: every command (including banned ones) and every path access runs
+// without a permission dialog. A nil config or nil value means the default
+// (confirmations required).
+func UnrestrictedMode() bool {
+	if cfg == nil || cfg.GUI.Unrestricted == nil {
+		return false
+	}
+	return *cfg.GUI.Unrestricted
+}
+
+// UpdateGUIUnrestricted persists whether all tool permission confirmations
+// are disabled (nil means the default: confirm).
+func UpdateGUIUnrestricted(unrestricted bool) error {
+	if cfg == nil {
+		return fmt.Errorf("config not loaded")
+	}
+	cfg.GUI.Unrestricted = &unrestricted
+	return updateCfgFile(func(config *Config) {
+		config.GUI.Unrestricted = &unrestricted
 	})
 }
 
