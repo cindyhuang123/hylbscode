@@ -343,6 +343,10 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 	// Append the new user message to the conversation history.
 	msgHistory := append(history, userMsg)
 
+	// True once a permission denial has been surfaced to the LLM; a second
+	// denial ends the turn instead of retrying the request loop.
+	deniedNotified := false
+
 	for {
 		// Check for cancellation before each iteration
 		select {
@@ -364,7 +368,33 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 			seqId := (len(msgHistory) + 1) / 2
 			_ = logging.WriteToolResultsJson(sessionID, seqId, toolResults)
 		}
-		if (agentMessage.FinishReason() == message.FinishReasonToolUse) && toolResults != nil {
+		finish := agentMessage.FinishReason()
+		toolUse := finish == message.FinishReasonToolUse
+		denied := finish == message.FinishReasonPermissionDenied
+		if toolResults != nil && (toolUse || denied) {
+			if denied {
+				// The user rejected a permission request. The tool result
+				// ("Permission denied") must reach the LLM so it knows why its
+				// operation was skipped; otherwise the turn ends silently.
+				// Guard against retry loops: notify once, then end the turn.
+				if deniedNotified {
+					return AgentEvent{
+						Type:    AgentEventTypeResponse,
+						Message: agentMessage,
+						Done:    true,
+					}
+				}
+				deniedNotified = true
+				msgHistory = append(msgHistory, agentMessage, *toolResults, message.Message{
+					Role: message.User,
+					Parts: []message.ContentPart{message.TextContent{
+						Text: "Note: the user denied one of the tool permission requests above. " +
+							"Do NOT retry the denied operation or any equivalent command. " +
+							"Re-plan your approach without it, or reply to the user explaining the situation.",
+					}},
+				})
+				continue
+			}
 			// We are not done, we need to respond with the tool response
 			msgHistory = append(msgHistory, agentMessage, *toolResults)
 			continue

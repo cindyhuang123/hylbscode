@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/pubsub"
@@ -13,6 +14,8 @@ import (
 )
 
 var ErrorPermissionDenied = errors.New("permission denied")
+
+const permissionRequestTimeout = 5 * time.Minute
 
 type CreatePermissionRequest struct {
 	SessionID   string `json:"session_id"`
@@ -103,9 +106,15 @@ func (s *permissionService) Request(opts CreatePermissionRequest) bool {
 
 	s.Publish(pubsub.CreatedEvent, permission)
 
-	// Wait for the response with a timeout
-	resp := <-respCh
-	return resp
+	// Wait for the response with a timeout: a dialog that is closed without
+	// answering (e.g. dismissed) would otherwise leave the requesting tool
+	// blocked forever. Timing out is treated as a denial.
+	select {
+	case resp := <-respCh:
+		return resp
+	case <-time.After(permissionRequestTimeout):
+		return false
+	}
 }
 
 func (s *permissionService) AutoApproveSession(sessionID string) {

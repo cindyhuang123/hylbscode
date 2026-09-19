@@ -30,15 +30,27 @@ func (g *MainWindow) showPermission(ev pubsub.Event[permission.PermissionRequest
 		container.NewHBox(allow, always, deny),
 	)
 	dlg := dialog.NewCustom(tr.PermissionTitle, tr.PermDeny, content, g.win)
+	// The dialog's dismiss button ("deny" text) only closes the window and
+	// never answers the pending permission request, which would leave the tool
+	// blocked forever. Treat any close without an explicit decision as a deny.
+	handled := false
 	allow.OnTapped = func() {
+		handled = true
 		g.grantPermission(dlg, req)
 	}
 	always.OnTapped = func() {
+		handled = true
 		g.grantPermissionForSession(dlg, req)
 	}
 	deny.OnTapped = func() {
+		handled = true
 		g.denyPermission(dlg, req)
 	}
+	dlg.SetOnClosed(func() {
+		if !handled {
+			g.core.Permissions.Deny(req)
+		}
+	})
 	dlg.Show()
 }
 
