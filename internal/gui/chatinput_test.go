@@ -165,7 +165,8 @@ func TestArrowKeysTriggerHistory(t *testing.T) {
 }
 
 // TestHomeEndScrollMessageList verifies Home/End fire the scroll handlers
-// (targeting the output area) regardless of input content.
+// when the input is empty (targeting the output area), but leave the keys
+// to the entry for cursor movement while text is being edited.
 func TestHomeEndScrollMessageList(t *testing.T) {
 	test.NewApp()
 
@@ -175,11 +176,19 @@ func TestHomeEndScrollMessageList(t *testing.T) {
 	win := test.NewWindow(ci)
 	defer win.Close()
 
-	ci.SetText("multi\nline")
+	ci.SetText("")
 	ci.entry.TypedKey(&fyne.KeyEvent{Name: fyne.KeyHome})
 	ci.entry.TypedKey(&fyne.KeyEvent{Name: fyne.KeyEnd})
 	if home != 1 || end != 1 {
-		t.Fatalf("expected Home/End scroll handlers fired, home=%d end=%d", home, end)
+		t.Fatalf("empty input should keep Home/End scroll handlers, home=%d end=%d", home, end)
+	}
+
+	home, end = 0, 0
+	ci.SetText("multi\nline")
+	ci.entry.TypedKey(&fyne.KeyEvent{Name: fyne.KeyHome})
+	ci.entry.TypedKey(&fyne.KeyEvent{Name: fyne.KeyEnd})
+	if home != 0 || end != 0 {
+		t.Fatalf("editing input must keep Home/End for cursor movement, home=%d end=%d", home, end)
 	}
 }
 

@@ -134,12 +134,18 @@ func (e *chatEntry) TypedKey(ev *fyne.KeyEvent) {
 		} else if e.parent.onHistoryDown != nil {
 			e.parent.onHistoryDown()
 		}
-	case fyne.KeyHome:
-		if e.parent.onPageHome != nil {
-			e.parent.onPageHome()
+	case fyne.KeyHome, fyne.KeyEnd:
+		// 正在输入(有文本)时 Home/End 交给 Entry 移动光标;空输入框时保留
+		// 窗口滚动快捷方式(输出区滚到顶/底, PageUp/PageDown 始终可用)。
+		if e.Text != "" {
+			e.Entry.TypedKey(ev)
+			return
 		}
-	case fyne.KeyEnd:
-		if e.parent.onPageEnd != nil {
+		if ev.Name == fyne.KeyHome {
+			if e.parent.onPageHome != nil {
+				e.parent.onPageHome()
+			}
+		} else if e.parent.onPageEnd != nil {
 			e.parent.onPageEnd()
 		}
 	default:
