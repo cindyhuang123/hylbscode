@@ -13,6 +13,7 @@ import (
 
 	"github.com/cindyhuang123/hylbscode/internal/app"
 	"github.com/cindyhuang123/hylbscode/internal/config"
+	"github.com/cindyhuang123/hylbscode/internal/llm/agent"
 	"github.com/cindyhuang123/hylbscode/internal/llm/models"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
 	"github.com/cindyhuang123/hylbscode/internal/pubsub"
@@ -28,6 +29,7 @@ type MainWindow struct {
 	sidebar *SessionSidebar
 	chat    *ChatArea
 	todo    *TodoPanel
+	mcp     *McpPanel
 
 	sessionPanel  *SessionPanel
 	status        *widget.Label
@@ -58,6 +60,7 @@ func NewMainWindow(fyneApp fyne.App, core *app.App, ctx context.Context) *MainWi
 	g.chat.SetOnSessionCreated(g.selectSession)
 	g.chat.SetOnSetup(g.ShowProviderSetup)
 	g.todo = NewTodoPanel(core, ctx)
+	g.mcp = NewMcpPanel()
 	g.sidebar.SetOnDelete(g.onSessionDeleted)
 	g.sessionPanel = NewSessionPanel(core, ctx)
 
@@ -91,19 +94,30 @@ func NewMainWindow(fyneApp fyne.App, core *app.App, ctx context.Context) *MainWi
 func (g *MainWindow) buildLayout() {
 	tr := config.Tr()
 
-	// Border: top = session+todo headers, bottom = version, center = todo
-	// list. The center slot stretches the List to fill the panel height; a
-	// VBox would collapse it to a single row.
+	// Border: top = session header, bottom = version, center = todo+mcp
+	// split. The center slot stretches the blocks to fill the panel height; a
+	// VBox would collapse them to a single row.
 	versionLabel := widget.NewLabel(version.Version)
+	todoBlock := container.NewBorder(
+		widget.NewLabelWithStyle(tr.GUITodoLabel, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		nil, nil, nil,
+		g.todo.Content(),
+	)
+	mcpBlock := container.NewBorder(
+		widget.NewLabelWithStyle(tr.GUIMcpLabel, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		nil, nil, nil,
+		g.mcp.Content(),
+	)
+	center := container.NewVSplit(todoBlock, mcpBlock)
+	center.SetOffset(0.5)
 	right := container.NewBorder(
 		container.NewVBox(
 			widget.NewLabelWithStyle(tr.SessionLabel, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			g.sessionPanel.Content(),
-			widget.NewLabelWithStyle(tr.GUITodoLabel, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		),
 		versionLabel,
 		nil, nil,
-		g.todo.Content(),
+		center,
 	)
 	rightPanel := right
 	g.inner = container.NewHSplit(g.chat.Content(), rightPanel)
@@ -451,6 +465,13 @@ func (g *MainWindow) clampToScreen() {
 func (g *MainWindow) Show() {
 	g.win.Show()
 	cfg := config.Get()
+	// MCP 服务器在后台注册工具; 完成后刷新右侧栏 MCP 面板。
+	go func() {
+		agent.GetMcpTools(g.ctx, g.core.Permissions)
+		fyne.Do(func() {
+			g.mcp.Reload()
+		})
+	}()
 	// 未配置自定义窗口尺寸时, 启动后做一次系统级最大化(等价于点窗口右上角
 	// 最大化按钮); GLFW 句柄取不到时退回按屏幕尺寸铺满。
 	if cfg.GUI.Width <= 0 || cfg.GUI.Height <= 0 {

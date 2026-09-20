@@ -243,7 +243,37 @@ func NewMcpTool(name string, tool mcp.Tool, permissions permission.Service, mcpC
 var (
 	mcpToolsMu     sync.Mutex
 	mcpServerTools = map[string][]tools.BaseTool{}
+	mcpServerErrs  = map[string]string{}
 )
+
+// McpServerInfo describes one configured MCP server and its registered tools
+// for the GUI panel: Name is the config key, Type its transport, Tools the
+// tool names registered for it, Err non-empty when the server could not be
+// reached at tool registration time.
+type McpServerInfo struct {
+	Name  string
+	Type  config.MCPType
+	Tools []string
+	Err   string
+}
+
+// ListMcpServers returns a snapshot of every configured MCP server with its
+// registered tool names (or the connection error when registration failed).
+// Read-only: it never connects; only GetMcpTools does.
+func ListMcpServers() []McpServerInfo {
+	mcpToolsMu.Lock()
+	defer mcpToolsMu.Unlock()
+	servers := config.Get().MCPServers
+	out := make([]McpServerInfo, 0, len(servers))
+	for name, m := range servers {
+		info := McpServerInfo{Name: name, Type: m.Type, Err: mcpServerErrs[name]}
+		for _, t := range mcpServerTools[name] {
+			info.Tools = append(info.Tools, t.Info().Name)
+		}
+		out = append(out, info)
+	}
+	return out
+}
 
 func registerServerTools(ctx context.Context, name string, m config.MCPServer, permissions permission.Service) []tools.BaseTool {
 	mc := mcpManager.get(name, m)
@@ -251,12 +281,15 @@ func registerServerTools(ctx context.Context, name string, m config.MCPServer, p
 	defer mc.mu.Unlock()
 	if err := mc.ensureLocked(ctx); err != nil {
 		logging.Error("error connecting to mcp server", "server", name, "error", err)
+		mcpServerErrs[name] = err.Error()
 		return nil
 	}
+	delete(mcpServerErrs, name)
 	toolsRequest := mcp.ListToolsRequest{}
 	toolList, err := mc.client.ListTools(ctx, toolsRequest)
 	if err != nil {
 		logging.Error("error listing tools", "server", name, "error", err)
+		mcpServerErrs[name] = err.Error()
 		return nil
 	}
 	registered := make([]tools.BaseTool, 0, len(toolList.Tools))

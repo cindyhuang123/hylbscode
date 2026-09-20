@@ -116,6 +116,8 @@ type Translation struct {
 	// GUI right bar / status bar.
 	GUITodoLabel    string
 	GUITodoEmpty    string
+	GUIMcpLabel     string
+	GUIMcpEmpty     string
 	GUIVersionLabel string
 	GUIModelLabel   string
 	GUIWDLabel      string
@@ -275,6 +277,8 @@ var (
 
 			GUITodoLabel:    "Todo",
 			GUITodoEmpty:    "No todos for this session.",
+			GUIMcpLabel:     "MCP",
+			GUIMcpEmpty:     "No MCP servers configured.",
 			GUIVersionLabel: "Version",
 			GUIModelLabel:   "Model",
 			GUIWDLabel:      "WD",
@@ -426,6 +430,8 @@ var (
 
 			GUITodoLabel:    "待办",
 			GUITodoEmpty:    "此会话暂无待办。",
+			GUIMcpLabel:     "MCP",
+			GUIMcpEmpty:     "未配置 MCP 服务器。",
 			GUIVersionLabel: "版本",
 			GUIModelLabel:   "模型",
 			GUIWDLabel:      "目录",

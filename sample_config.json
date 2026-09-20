@@ -47,5 +47,20 @@
     "hylbscode.md",
     "HyLbsCode.md"
   ],
+  "mcpServers": {
+    "local-server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/your/project"],
+      "env": ["API_KEY=xxx"]
+    },
+    "remote-server": {
+      "type": "sse",
+      "url": "https://example.com/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer xxx"
+      }
+    }
+  },
   "shell": {}
 }
