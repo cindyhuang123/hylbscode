@@ -174,6 +174,10 @@ func generateSchema() map[string]any {
 				"type":        "string",
 				"description": "Path to a ttf/otf font file that overrides the built-in UI font",
 			},
+			"icon": map[string]any{
+				"type":        "string",
+				"description": "Path to a png/ico file used as the app and taskbar/window icon; the built-in icon is used when empty",
+			},
 		},
 	}
 

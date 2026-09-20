@@ -89,6 +89,7 @@ type GUIConfig struct {
 	Unrestricted *bool   `json:"unrestricted,omitempty"` // 完全放开所有工具权限确认(bash 路径/脚本/危险命令、banned、view/edit 等); nil 表示默认需确认
 	InnerSplit   float64 `json:"innerSplit,omitempty"`   // 会话/聊天左右分割比例, 0 表示默认
 	OuterSplit   float64 `json:"outerSplit,omitempty"`   // 聊天/右栏分割比例, 0 表示默认
+	Icon         string  `json:"icon,omitempty"`         // 应用图标(png/ico)文件路径, 用于窗口/任务栏缩略图; 缺省用内置图标
 }
 
 // ShellConfig defines the configuration for the shell used by the bash tool.

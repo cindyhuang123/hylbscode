@@ -285,17 +285,21 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 	var header fyne.CanvasObject = headerRow
 	if m.Role == message.Assistant || m.Role == message.User {
 		var copyBtn *widget.Button
+		// 空消息(纯工具轮 assistant)闪 ✕, 避免复制空文本时无任何反馈.
+		flash := func(icon fyne.Resource) {
+			copyBtn.SetIcon(icon)
+			copyBtn.Refresh()
+			time.AfterFunc(1200*time.Millisecond, func() {
+				copyBtn.SetIcon(theme.ContentCopyIcon())
+				copyBtn.Refresh()
+			})
+		}
 		copyBtn = widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
 			if txt := messageCopyText(m); txt != "" {
 				fyne.CurrentApp().Clipboard().SetContent(txt)
-				// Toggle the icon to a checkmark as visible feedback; the
-				// clipboard write itself gives no indication otherwise.
-				copyBtn.SetIcon(theme.ConfirmIcon())
-				copyBtn.Refresh()
-				time.AfterFunc(1200*time.Millisecond, func() {
-					copyBtn.SetIcon(theme.ContentCopyIcon())
-					copyBtn.Refresh()
-				})
+				flash(theme.ConfirmIcon())
+			} else {
+				flash(theme.CancelIcon())
 			}
 		})
 		header = container.NewBorder(nil, nil, nil, copyBtn, headerRow)

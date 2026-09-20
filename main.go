@@ -33,6 +33,14 @@ func fatal(format string, args ...any) {
 	os.Exit(1)
 }
 
+func loadAppIcon(path string) (fyne.Resource, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return fyne.NewStaticResource(filepath.Base(path), data), nil
+}
+
 // alertAndExit shows a modal dialog explaining why the app cannot start (a
 // second instance in the same working directory) and exits when dismissed.
 func alertAndExit(message string) {
@@ -119,6 +127,13 @@ func main() {
 	}
 
 	a := fyneapp.NewWithID("com.hylbscode.desktop")
+	if cfg.GUI.Icon != "" {
+		if res, err := loadAppIcon(cfg.GUI.Icon); err != nil {
+			logging.Warn("invalid gui.icon, falling back to built-in icon", "path", cfg.GUI.Icon, "err", err)
+		} else {
+			a.SetIcon(res)
+		}
+	}
 	g := gui.NewMainWindow(a, core, ctx)
 	cancel := gui.SetupSubscriptions(g, ctx)
 

@@ -425,3 +425,34 @@ func TestUserCopyButtonWritesClipboard(t *testing.T) {
 		t.Fatalf("clipboard should contain the user text, got %q", got)
 	}
 }
+
+// 复刻 chat.go renderNow 的缓存+渲染循环, 验证复制按钮不串消息.
+func TestRenderCycleCopyIsolation(t *testing.T) {
+	test.NewApp()
+	a1 := message.Message{ID: "a1", Role: message.Assistant, Parts: []message.ContentPart{message.TextContent{Text: "first answer"}}}
+	a2 := message.Message{ID: "a2", Role: message.Assistant, Parts: []message.ContentPart{message.TextContent{Text: "second answer"}}}
+	msgs := []message.Message{a1, a2}
+	cache := make(map[string]fyne.CanvasObject)
+	active := map[string]*ToolBlock{}
+	views := make([]fyne.CanvasObject, 0, len(msgs))
+	for _, m := range msgs {
+		if v, ok := cache[m.ID]; ok {
+			views = append(views, v)
+			continue
+		}
+		v, _ := renderMessage(m, active, nil, false)
+		cache[m.ID] = v
+		views = append(views, v)
+	}
+
+	btn1 := collectButtons(cache["a1"])[0]
+	btn1.OnTapped()
+	if got := fyne.CurrentApp().Clipboard().Content(); got != "first answer" {
+		t.Fatalf("button of first message should copy its own text, got %q", got)
+	}
+	btn2 := collectButtons(cache["a2"])[0]
+	btn2.OnTapped()
+	if got := fyne.CurrentApp().Clipboard().Content(); got != "second answer" {
+		t.Fatalf("button of second message should copy its own text, got %q", got)
+	}
+}
