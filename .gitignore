@@ -58,5 +58,10 @@ HYLBSCODE.md
 
 HyLbsCode.md
 
+# Loose icon/image files in repo root (embedded icon lives in internal/gui/icon.png)
+hylbscode.png
+yixingzhanji.png
+zhiwudazhan.png
+
 # opencode workspace files
 .sisyphus/

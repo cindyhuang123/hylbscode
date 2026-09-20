@@ -21,6 +21,7 @@ import (
 	"github.com/cindyhuang123/hylbscode/internal/app"
 	"github.com/cindyhuang123/hylbscode/internal/config"
 	"github.com/cindyhuang123/hylbscode/internal/db"
+	"github.com/cindyhuang123/hylbscode/internal/desktop"
 	"github.com/cindyhuang123/hylbscode/internal/gui"
 	"github.com/cindyhuang123/hylbscode/internal/logging"
 	"github.com/cindyhuang123/hylbscode/internal/skills"
@@ -127,12 +128,17 @@ func main() {
 	}
 
 	a := fyneapp.NewWithID("com.hylbscode.desktop")
+	var res fyne.Resource = fyne.NewStaticResource("icon.png", gui.BuiltinIcon)
 	if cfg.GUI.Icon != "" {
-		if res, err := loadAppIcon(cfg.GUI.Icon); err != nil {
+		if loaded, err := loadAppIcon(cfg.GUI.Icon); err != nil {
 			logging.Warn("invalid gui.icon, falling back to built-in icon", "path", cfg.GUI.Icon, "err", err)
 		} else {
-			a.SetIcon(res)
+			res = loaded
 		}
+	}
+	a.SetIcon(res)
+	if err := desktop.EnsureIcon(res); err != nil {
+		logging.Warn("desktop icon integration failed", "err", err)
 	}
 	g := gui.NewMainWindow(a, core, ctx)
 	cancel := gui.SetupSubscriptions(g, ctx)
