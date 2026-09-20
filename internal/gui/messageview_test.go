@@ -406,6 +406,54 @@ func TestAssistantCopyButtonWritesClipboard(t *testing.T) {
 	}
 }
 
+// 纯工具轮 assistant(非最后一条)只有 ToolCall parts, 复制应产出工具摘要并写入剪贴板.
+func TestToolUseAssistantCopyWritesClipboard(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Assistant,
+		Parts: []message.ContentPart{
+			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"command":"go test ./internal/gui"}`},
+			message.ToolCall{ID: "call_2", Name: "view", Input: `{"file_path":"main.go"}`},
+		},
+	}
+	view, _ := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+
+	buttons := collectButtons(view)
+	if len(buttons) == 0 {
+		t.Fatal("tool-use assistant message should render a copy button, found none")
+	}
+	buttons[0].OnTapped()
+
+	got := fyne.CurrentApp().Clipboard().Content()
+	if !strings.Contains(got, "bash") || !strings.Contains(got, "go test ./internal/gui") {
+		t.Fatalf("clipboard should contain the bash tool summary, got %q", got)
+	}
+	if !strings.Contains(got, "view") {
+		t.Fatalf("clipboard should contain the view tool name, got %q", got)
+	}
+}
+
+// Tool 角色消息(工具返回)也应有复制按钮, 复制 ToolResult 内容.
+func TestToolResultCopyWritesClipboard(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role:  message.Tool,
+		Parts: []message.ContentPart{message.ToolResult{Name: "bash", Content: "PASS\nok  github.com/cindyhuang123/hylbscode/internal/gui  0.317s"}},
+	}
+	view, _ := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+
+	buttons := collectButtons(view)
+	if len(buttons) == 0 {
+		t.Fatal("tool message should render a copy button, found none")
+	}
+	buttons[0].OnTapped()
+
+	got := fyne.CurrentApp().Clipboard().Content()
+	if !strings.Contains(got, "PASS") || !strings.Contains(got, "0.317s") {
+		t.Fatalf("clipboard should contain the tool result content, got %q", got)
+	}
+}
+
 func TestUserCopyButtonWritesClipboard(t *testing.T) {
 	test.NewApp()
 	m := message.Message{

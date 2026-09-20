@@ -197,7 +197,9 @@ func roleColor(role message.MessageRole) fyne.ThemeColorName {
 }
 
 // messageCopyText extracts the plain text of a message for clipboard copying.
-// Reasoning (thinking) is included so the user can save the full reply.
+// Reasoning (thinking) is included so the user can save the full reply;
+// tool calls are included as "[name] input" so pure tool-use rounds (the
+// intermediate assistant messages) still copy meaningful content.
 func messageCopyText(m message.Message) string {
 	var b strings.Builder
 	for _, part := range m.Parts {
@@ -210,6 +212,22 @@ func messageCopyText(m message.Message) string {
 		case message.ReasoningContent:
 			if t := ansi.Strip(p.Thinking); t != "" {
 				b.WriteString(t)
+				b.WriteString("\n\n")
+			}
+		case message.ToolCall:
+			if p.Name == "" {
+				continue
+			}
+			b.WriteString("[" + p.Name)
+			if p.Input != "" {
+				b.WriteString("] " + summarizeToolInput(p.Name, p.Input))
+			} else {
+				b.WriteString("]")
+			}
+			b.WriteString("\n\n")
+		case message.ToolResult:
+			if c := ansi.Strip(p.Content); c != "" {
+				b.WriteString(c)
 				b.WriteString("\n\n")
 			}
 		}
@@ -280,10 +298,11 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 	// RichText places each TextSegment on its own line, so the timestamp must
 	// be a separate widget placed side by side with the role label.
 	headerRow := container.NewHBox(headerTxt, timeTxt)
-	// Assistant and user replies get a copy button: rich-text blocks are not
-	// selectable in Fyne, so copying the whole message is the reliable way out.
+	// Assistant, user and tool messages get a copy button: rich-text blocks
+	// are not selectable in Fyne, so copying the whole message is the
+	// reliable way out.
 	var header fyne.CanvasObject = headerRow
-	if m.Role == message.Assistant || m.Role == message.User {
+	if m.Role == message.Assistant || m.Role == message.User || m.Role == message.Tool {
 		var copyBtn *widget.Button
 		// 空消息(纯工具轮 assistant)闪 ✕, 避免复制空文本时无任何反馈.
 		flash := func(icon fyne.Resource) {
