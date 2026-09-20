@@ -3,7 +3,10 @@ package gui
 import (
 	"testing"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/test"
+	"fyne.io/fyne/v2/widget"
+	"strings"
 
 	"github.com/cindyhuang123/hylbscode/internal/message"
 )
@@ -359,5 +362,66 @@ func TestParseInlineUnclosedBacktick(t *testing.T) {
 	}
 	if len(segs) != 1 || segs[0].text != "oops `unclosed" {
 		t.Fatalf("expected single plain segment, got %+v", segs)
+	}
+}
+
+func collectButtons(obj fyne.CanvasObject) []*widget.Button {
+	var out []*widget.Button
+	var walk func(fyne.CanvasObject)
+	walk = func(o fyne.CanvasObject) {
+		if b, ok := o.(*widget.Button); ok {
+			out = append(out, b)
+			return
+		}
+		if c, ok := o.(*fyne.Container); ok {
+			for _, child := range c.Objects {
+				walk(child)
+			}
+		}
+	}
+	walk(obj)
+	return out
+}
+
+func TestAssistantCopyButtonWritesClipboard(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Assistant,
+		Parts: []message.ContentPart{
+			message.ReasoningContent{Thinking: "thinking step"},
+			message.TextContent{Text: "answer with `code` and [link](https://x.dev)"},
+		},
+	}
+	view, _ := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+
+	buttons := collectButtons(view)
+	if len(buttons) == 0 {
+		t.Fatal("assistant message should render a copy button, found none")
+	}
+	buttons[0].OnTapped()
+
+	got := fyne.CurrentApp().Clipboard().Content()
+	if !strings.Contains(got, "thinking step") || !strings.Contains(got, "answer with") {
+		t.Fatalf("clipboard should contain reasoning and body, got %q", got)
+	}
+}
+
+func TestUserCopyButtonWritesClipboard(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role:  message.User,
+		Parts: []message.ContentPart{message.TextContent{Text: "user question"}},
+	}
+	view, _ := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+
+	buttons := collectButtons(view)
+	if len(buttons) == 0 {
+		t.Fatal("user message should render a copy button, found none")
+	}
+	buttons[0].OnTapped()
+
+	got := fyne.CurrentApp().Clipboard().Content()
+	if !strings.Contains(got, "user question") {
+		t.Fatalf("clipboard should contain the user text, got %q", got)
 	}
 }

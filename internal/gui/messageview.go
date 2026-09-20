@@ -284,9 +284,18 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 	// selectable in Fyne, so copying the whole message is the reliable way out.
 	var header fyne.CanvasObject = headerRow
 	if m.Role == message.Assistant || m.Role == message.User {
-		copyBtn := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+		var copyBtn *widget.Button
+		copyBtn = widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
 			if txt := messageCopyText(m); txt != "" {
 				fyne.CurrentApp().Clipboard().SetContent(txt)
+				// Toggle the icon to a checkmark as visible feedback; the
+				// clipboard write itself gives no indication otherwise.
+				copyBtn.SetIcon(theme.ConfirmIcon())
+				copyBtn.Refresh()
+				time.AfterFunc(1200*time.Millisecond, func() {
+					copyBtn.SetIcon(theme.ContentCopyIcon())
+					copyBtn.Refresh()
+				})
 			}
 		})
 		header = container.NewBorder(nil, nil, nil, copyBtn, headerRow)
