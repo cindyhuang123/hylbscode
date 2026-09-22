@@ -16,7 +16,8 @@ import (
 func CoderPrompt(provider models.ModelProvider) string {
 	basePrompt := baseAnthropicCoderPrompt
 	switch provider {
-	case models.ProviderOpenAI:
+	// OpenAI 兼容协议的服务商统一用 OpenAI 版提示词
+	case models.ProviderOpenAI, models.ProviderDeepSeek, models.ProviderGLM:
 		basePrompt = baseOpenAICoderPrompt
 	}
 	envInfo := getEnvironmentInfo()
@@ -25,7 +26,7 @@ func CoderPrompt(provider models.ModelProvider) string {
 }
 
 const baseOpenAICoderPrompt = `
-You are operating as and within the HyLbsCode CLI, a terminal-based agentic coding assistant built by OpenAI. It wraps OpenAI models to enable natural language interaction with a local codebase. You are expected to be precise, safe, and helpful.
+You are operating as and within the HyLbsCode CLI, a terminal-based agentic coding assistant. It wraps OpenAI-compatible models to enable natural language interaction with a local codebase. You are expected to be precise, safe, and helpful.
 
 You can:
 - Receive user prompts, project context, and files.

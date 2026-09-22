@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cindyhuang123/hylbscode/internal/config"
+	"github.com/cindyhuang123/hylbscode/internal/llm/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,5 +55,37 @@ func createTestFiles(t *testing.T, tmpDir string, testFiles []string) {
 			err = os.WriteFile(fullPath, []byte(path+": test content"), 0644)
 			require.NoError(t, err)
 		}
+	}
+}
+
+func TestCoderPromptProviderSelection(t *testing.T) {
+	tmpDir := t.TempDir()
+	if _, err := config.Load(tmpDir, false); err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	cfg := config.Get()
+	cfg.WorkingDir = tmpDir
+
+	openaiCompat := []models.ModelProvider{
+		models.ProviderOpenAI,
+		models.ProviderDeepSeek,
+		models.ProviderGLM,
+	}
+	for _, p := range openaiCompat {
+		out := CoderPrompt(p)
+		if !strings.Contains(out, "OpenAI-compatible models") {
+			t.Errorf("provider %q: expected OpenAI-compatible prompt marker, got:\n%s", p, out)
+		}
+		if strings.Contains(out, "built by OpenAI") {
+			t.Errorf("provider %q: prompt still contains OpenAI-specific identity", p)
+		}
+	}
+	// Anthropic 仍走 Anthropic 版提示词
+	anthropic := CoderPrompt(models.ProviderAnthropic)
+	if !strings.Contains(anthropic, "interactive CLI tool that helps users") {
+		t.Errorf("anthropic: expected Anthropic prompt marker, got:\n%s", anthropic)
+	}
+	if strings.Contains(anthropic, "OpenAI-compatible models") {
+		t.Errorf("anthropic: prompt wrongly contains OpenAI-compatible marker")
 	}
 }

@@ -409,6 +409,11 @@ func setProviderDefaults() {
 		viper.SetDefault("agents.summarizer.model", models.DeepSeekV4Flash)
 		viper.SetDefault("agents.task.model", models.DeepSeekV4Flash)
 		viper.SetDefault("agents.title.model", models.DeepSeekV4Flash)
+		// DeepSeek thinking 默认: 干活 agent(coder/task)开启, 轻量 agent 关闭
+		viper.SetDefault("agents.coder.thinking", "enabled")
+		viper.SetDefault("agents.task.thinking", "enabled")
+		viper.SetDefault("agents.summarizer.thinking", "disabled")
+		viper.SetDefault("agents.title.thinking", "disabled")
 		return
 	}
 

@@ -546,10 +546,13 @@ func (o *openaiClient) deepSeekThinkingRequestOption(messages []message.Message)
 
 func WithThinking(thinking string) OpenAIOption {
 	return func(options *openaiOptions) {
-		switch strings.ToLower(thinking) {
+		// 未配置(空值)时静默回退 disabled; 显式给了非法值才告警
+		switch strings.ToLower(strings.TrimSpace(thinking)) {
 		case "enabled", "enable":
 			options.thinking = "enabled"
 		case "disabled", "disable":
+			options.thinking = "disabled"
+		case "":
 			options.thinking = "disabled"
 		default:
 			logging.Warn("Invalid thinking value, using default: disabled")
@@ -560,9 +563,11 @@ func WithThinking(thinking string) OpenAIOption {
 func WithReasoningEffort(effort string) OpenAIOption {
 	return func(options *openaiOptions) {
 		defaultReasoningEffort := "medium"
-		switch effort {
+		// 未配置(空值)时静默用默认 medium; 显式给了非法值才告警
+		switch strings.TrimSpace(effort) {
 		case "low", "medium", "high":
 			defaultReasoningEffort = effort
+		case "":
 		default:
 			logging.Warn("Invalid reasoning effort, using default: medium")
 		}
