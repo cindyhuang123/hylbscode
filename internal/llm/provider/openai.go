@@ -524,6 +524,26 @@ func (o *openaiClient) deepSeekReasoningRequestOptions(reasoningIdx map[int]stri
 	return opts
 }
 
+// deepSeekThinkingToggle 计算 DeepSeek 请求的 thinking 状态与 reasoning_effort。
+// 返回 ok=false 表示非 DeepSeek provider, 不应注入任何字段。
+// effort 为空表示 thinking 关闭时不注入 reasoning_effort(该参数会重新开启思考, 与降级意图冲突)。
+func (o *openaiClient) deepSeekThinkingToggle(messages []message.Message) (thinking string, effort string, ok bool) {
+	if o.providerOptions.model.Provider != models.ProviderDeepSeek {
+		return "", "", false
+	}
+	thinking = o.options.thinking
+	if thinking == "enabled" && len(messages) > 0 && messages[len(messages)-1].Role != message.User {
+		thinking = "disabled"
+	}
+	if thinking == "enabled" {
+		effort = o.options.reasoningEffort
+		if effort == "" {
+			effort = "medium"
+		}
+	}
+	return thinking, effort, true
+}
+
 // deepSeekThinkingRequestOption injects the thinking toggle for DeepSeek,
 // whose API enables thinking with an unbounded budget by default.
 // When thinking is "enabled", agent tool‑call cycles require an
@@ -531,17 +551,20 @@ func (o *openaiClient) deepSeekReasoningRequestOptions(reasoningIdx map[int]stri
 // a tool message. DeepSeek rejects such requests with 400, so we
 // automatically downgrade to "disabled" when the last message is not from
 // the user (i.e. the request is a mid‑cycle continuation).
+// thinking 开启时显式注入 reasoning_effort(顶层参数), 使配置的推理力度
+// (low/medium/high)真正生效, 而非服务端默认的 unbounded/high。
 func (o *openaiClient) deepSeekThinkingRequestOption(messages []message.Message) []option.RequestOption {
-	if o.providerOptions.model.Provider != models.ProviderDeepSeek {
+	thinking, effort, ok := o.deepSeekThinkingToggle(messages)
+	if !ok {
 		return nil
 	}
-	thinking := o.options.thinking
-	if thinking == "enabled" && len(messages) > 0 && messages[len(messages)-1].Role != message.User {
-		thinking = "disabled"
-	}
-	return []option.RequestOption{
+	opts := []option.RequestOption{
 		option.WithJSONSet("thinking", map[string]string{"type": thinking}),
 	}
+	if effort != "" {
+		opts = append(opts, option.WithJSONSet("reasoning_effort", effort))
+	}
+	return opts
 }
 
 func WithThinking(thinking string) OpenAIOption {
