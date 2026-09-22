@@ -47,6 +47,7 @@ type ChatArea struct {
 	renderCache map[string]fyne.CanvasObject
 	dirty       map[string]bool
 	win         fyne.Window
+	pending     []string
 
 	attachments []message.Attachment
 	attachLabel *widget.Label
@@ -128,6 +129,16 @@ func (c *ChatArea) setCancelledUI() {
 	c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
 		Text:  config.Tr().ChatCancelled,
 		Style: widget.RichTextStyle{ColorName: theme.ColorNameWarning, TextStyle: fyne.TextStyle{Bold: true}},
+	}}
+	c.status.Refresh()
+}
+
+// setQueuedUI marks the status line when /bty messages are queued behind the
+// current response; the queued count is included so the state is visible.
+func (c *ChatArea) setQueuedUI() {
+	c.status.Segments = []widget.RichTextSegment{&widget.TextSegment{
+		Text:  fmt.Sprintf("%s (%d)", config.Tr().ChatQueued, len(c.pending)),
+		Style: widget.RichTextStyle{ColorName: theme.ColorNamePrimary, TextStyle: fyne.TextStyle{Bold: true}},
 	}}
 	c.status.Refresh()
 }
@@ -425,16 +436,33 @@ func (c *ChatArea) pageDown() {
 
 func (c *ChatArea) Send() {
 	logging.Info("send: entered", "streaming", c.streaming.Load())
+	text := strings.TrimSpace(c.input.Text())
 	if c.streaming.Load() {
+		if strings.HasPrefix(text, "/bty") && len(text) > len("/bty") {
+			content := strings.TrimSpace(strings.TrimPrefix(text, "/bty"))
+			if content != "" {
+				c.pending = append(c.pending, content)
+				c.input.SetText("")
+				c.setQueuedUI()
+				logging.Info("send: queued bty", "content", content)
+				return
+			}
+		}
 		c.showBlockedHint()
 		return
 	}
-	text := strings.TrimSpace(c.input.Text())
 	if text == "" {
 		logging.Info("send: empty text, ignored")
 		return
 	}
-	c.input.SetText("")
+	c.sendText(text, true)
+}
+
+// sendText starts an agent turn; clearInput=false preserves the user's typed text (bty flush).
+func (c *ChatArea) sendText(text string, clearInput bool) {
+	if clearInput {
+		c.input.SetText("")
+	}
 	logging.Info("send: text", "text", text)
 
 	if c.core.CoderAgent == nil {
@@ -480,20 +508,35 @@ func (c *ChatArea) Send() {
 	logging.Info("send: agent run started")
 	go func() {
 		defer logging.RecoverPanic("consume-agent-events", nil)
-		defer c.streaming.Store(false)
 		defer fyne.Do(func() {
+			c.streaming.Store(false)
 			if c.cancelled.Load() {
+				c.pending = nil
 				c.setCancelledUI()
 			} else if c.errState.Load() {
+				c.pending = nil
 				c.setErrorUI(c.errMsg)
 			} else {
 				c.setStreamingUI(false)
+				c.flushPending()
 			}
 		})
 		for range evCh {
 		}
 	}()
 	c.sched.Schedule()
+}
+
+// flushPending sends queued /bty messages, one per finished turn, so a burst
+// of /bty inputs drains one-by-one after each response completes.
+func (c *ChatArea) flushPending() {
+	if len(c.pending) == 0 {
+		return
+	}
+	text := c.pending[0]
+	c.pending = c.pending[1:]
+	logging.Info("send: flushing queued bty", "content", text)
+	c.sendText(text, false)
 }
 
 func (c *ChatArea) OnMessageEvent(ev pubsub.Event[message.Message]) {
@@ -556,7 +599,9 @@ func (c *ChatArea) OnAgentEvent(ev pubsub.Event[agent.AgentEvent]) {
 		case e.StreamContent != "":
 			if block, ok := c.toolBlocks[e.ToolCallID]; ok {
 				block.AppendOutput(e.StreamContent)
-				c.scroll.ScrollToBottom()
+				if !block.noOutput {
+					c.scroll.ScrollToBottom()
+				}
 			}
 		case !e.ToolStart:
 			// Tool finished; keep the live block in the map so the next

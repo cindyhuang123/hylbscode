@@ -2,6 +2,7 @@ package gui
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -19,7 +20,8 @@ import (
 // fakeAgentService implements agent.Service with a closable event channel so
 // ChatArea.Send exercises the full start path and tests can finish the run.
 type fakeAgentService struct {
-	runCh chan agent.AgentEvent
+	runCh    chan agent.AgentEvent
+	closedCh bool // when set, Run returns an already-closed channel
 }
 
 func (f *fakeAgentService) Subscribe(ctx context.Context) <-chan pubsub.Event[agent.AgentEvent] {
@@ -28,6 +30,9 @@ func (f *fakeAgentService) Subscribe(ctx context.Context) <-chan pubsub.Event[ag
 func (f *fakeAgentService) Model() models.Model { return models.Model{} }
 func (f *fakeAgentService) Run(ctx context.Context, sessionID string, content string, attachments ...message.Attachment) (<-chan agent.AgentEvent, error) {
 	f.runCh = make(chan agent.AgentEvent)
+	if f.closedCh {
+		close(f.runCh)
+	}
 	return f.runCh, nil
 }
 func (f *fakeAgentService) Cancel(sessionID string)             {}
@@ -93,6 +98,104 @@ func TestSetCancelledUI(t *testing.T) {
 	seg := c.status.Segments[0].(*widget.TextSegment)
 	if seg.Text != config.Tr().ChatCancelled {
 		t.Fatalf("expected cancelled status, got %q", seg.Text)
+	}
+}
+
+// TestSendQueuesBty verifies a /bty message typed while streaming is queued
+// instead of dropped: the input clears, the status line reports the queue,
+// and nothing is sent to the agent.
+func TestSendQueuesBty(t *testing.T) {
+	test.NewApp()
+	config.SetLanguage(config.LangChinese)
+	svc := &fakeAgentService{}
+	core := &app.App{Messages: &fakeMessageService{}, CoderAgent: svc}
+	c := NewChatArea(core, context.Background())
+	c.current = "s1"
+	c.streaming.Store(true)
+
+	c.input.SetText("/bty 补充一点")
+	c.Send()
+
+	if len(c.pending) != 1 || c.pending[0] != "补充一点" {
+		t.Fatalf("expected 1 queued bty message, got %v", c.pending)
+	}
+	if c.input.Text() != "" {
+		t.Fatalf("expected input to be cleared, got %q", c.input.Text())
+	}
+	if len(c.history) != 0 {
+		t.Fatalf("expected queued message not to be in history, got %v", c.history)
+	}
+	seg := c.status.Segments[0].(*widget.TextSegment)
+	if seg.Text != fmt.Sprintf("%s (%d)", config.Tr().ChatQueued, 1) {
+		t.Fatalf("expected queued status, got %q", seg.Text)
+	}
+}
+
+// TestSendBtyEmptyContent verifies a bare /bty is ignored cleanly.
+func TestSendBtyEmptyContent(t *testing.T) {
+	test.NewApp()
+	core := &app.App{Messages: &fakeMessageService{}}
+	c := NewChatArea(core, context.Background())
+	c.streaming.Store(true)
+
+	c.input.SetText("/bty")
+	c.Send()
+
+	if len(c.pending) != 0 {
+		t.Fatalf("expected no queued message for empty /bty, got %v", c.pending)
+	}
+}
+
+// TestFlushPendingDrainsQueue verifies flushPending cascades through the
+// whole queue, one message per completed turn, until it is empty.
+func TestFlushPendingDrainsQueue(t *testing.T) {
+	test.NewApp()
+	svc := &fakeAgentService{closedCh: true}
+	core := &app.App{Messages: &fakeMessageService{}, CoderAgent: svc}
+	c := NewChatArea(core, context.Background())
+	c.current = "s1"
+	c.pending = []string{"first", "second"}
+
+	c.flushPending()
+	waitForQueueDrained(t, c)
+
+	if len(c.pending) != 0 {
+		t.Fatalf("expected queue drained, got %v", c.pending)
+	}
+	if len(c.history) != 2 || c.history[0] != "first" || c.history[1] != "second" {
+		t.Fatalf("expected both flushed messages in history, got %v", c.history)
+	}
+}
+
+// TestFlushPendingKeepsInput verifies flushing does not clear the user's
+// in-progress typing.
+func TestFlushPendingKeepsInput(t *testing.T) {
+	test.NewApp()
+	svc := &fakeAgentService{closedCh: true}
+	core := &app.App{Messages: &fakeMessageService{}, CoderAgent: svc}
+	c := NewChatArea(core, context.Background())
+	c.current = "s1"
+	c.pending = []string{"queued"}
+	c.input.SetText("正在输入")
+
+	c.flushPending()
+	waitForQueueDrained(t, c)
+
+	if c.input.Text() != "正在输入" {
+		t.Fatalf("expected in-progress input preserved, got %q", c.input.Text())
+	}
+}
+
+// waitForQueueDrained waits until the queued /bty messages have all been sent
+// and the agent is idle again.
+func waitForQueueDrained(t *testing.T, c *ChatArea) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for len(c.pending) > 0 || c.streaming.Load() {
+		if time.Now().After(deadline) {
+			t.Fatalf("queued messages were not drained, pending=%v streaming=%v", c.pending, c.streaming.Load())
+		}
+		time.Sleep(time.Millisecond)
 	}
 }
 

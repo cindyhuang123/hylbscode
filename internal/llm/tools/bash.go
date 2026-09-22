@@ -39,16 +39,16 @@ const (
 )
 
 var bannedCommands = []string{
-	"alias", "curlie", "wget", "axel", "aria2c",
+	"alias", "curlie", "axel", "aria2c",
 	"lynx", "w3m", "links", "httpie", "xh",
-	"http-prompt", "chrome", "firefox", "safari",
+	"http-prompt", "chrome", "safari",
 }
 
 // dangerousCommands require user confirmation before execution. All other
 // commands are treated as safe and run directly without a permission dialog.
 var dangerousCommands = []string{
-	"rm", "rmdir", "cp", "mv", "chmod", "chgrp", "chown", "curl", "nc", "telnet",
-	"sudo", "git push", "git reset --hard", "git clean", "git rebase",
+	"rm", "rmdir", "cp", "mv", "chmod", "chgrp", "chown", "curl", "nc", "telnet", "wget",
+	"sudo", "git push", "git reset --hard", "git clean", "git rebase", "firefox",
 	"dd", "mkfs", "fdisk", "parted",
 	"shutdown", "reboot", "poweroff", "halt",
 	"kill", "killall", "pkill",

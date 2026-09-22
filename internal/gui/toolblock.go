@@ -170,6 +170,25 @@ func (t *ToolBlock) refreshOutput() {
 		t.output.SetText(full)
 		return
 	}
+	if t.noOutput {
+		// compact 中间轮块: 默认只保留标题行, 输出区隐藏。有输出内容时
+		// 提供展开按钮, 展开后显示该轮工具调用的完整输出。
+		if t.expanded {
+			t.output.SetText(full)
+			t.outputBox.Show()
+			t.expandBtn.SetText(config.Tr().Collapse)
+			t.expandBtn.Show()
+			return
+		}
+		t.outputBox.Hide()
+		if full != "" {
+			t.expandBtn.SetText(config.Tr().Expand)
+			t.expandBtn.Show()
+		} else {
+			t.expandBtn.Hide()
+		}
+		return
+	}
 	if t.expanded {
 		t.output.SetText(full)
 		t.expandBtn.SetText(config.Tr().Collapse)

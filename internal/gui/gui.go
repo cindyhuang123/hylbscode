@@ -399,6 +399,7 @@ func (g *MainWindow) showShortcuts() {
 		"Esc           " + tr.GUICancelResponse,
 		"↑/↓           " + tr.GUIHistoryNav,
 		"Home/End      " + tr.GUIScrollOutput,
+		"Double-click  " + tr.GUIDoubleClickRename,
 	}
 	var col1, col2 []fyne.CanvasObject
 	half := (len(lines) + 1) / 2

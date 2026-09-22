@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"fyne.io/fyne/v2"
@@ -29,6 +30,33 @@ type SessionSidebar struct {
 	win      fyne.Window
 }
 
+// sessionRow wraps a sidebar session label so single tap selects the session
+// and a double tap opens the rename dialog (fyne.DoubleTappable).
+type sessionRow struct {
+	widget.Label
+	onTap        func()
+	onDoubleTap  func()
+}
+
+func newSessionRow(labelText string, onTap, onDoubleTap func()) *sessionRow {
+	r := &sessionRow{onTap: onTap, onDoubleTap: onDoubleTap}
+	r.Label = *widget.NewLabel(labelText)
+	r.ExtendBaseWidget(r)
+	return r
+}
+
+func (r *sessionRow) Tapped(_ *fyne.PointEvent) {
+	if r.onTap != nil {
+		r.onTap()
+	}
+}
+
+func (r *sessionRow) DoubleTapped(_ *fyne.PointEvent) {
+	if r.onDoubleTap != nil {
+		r.onDoubleTap()
+	}
+}
+
 func NewSessionSidebar(core *app.App, ctx context.Context, onSelect func(string)) *SessionSidebar {
 	v := &SessionSidebar{
 		core:     core,
@@ -45,16 +73,25 @@ func NewSessionSidebar(core *app.App, ctx context.Context, onSelect func(string)
 	v.list = widget.NewList(
 		v.length,
 		func() fyne.CanvasObject {
-			return widget.NewLabel("")
+			return newSessionRow("", nil, nil)
 		},
 		func(id widget.ListItemID, obj fyne.CanvasObject) {
 			s := v.itemAt(int(id))
-			label := obj.(*widget.Label)
-			label.SetText(s.Title)
+			row := obj.(*sessionRow)
+			row.Label.SetText(s.Title)
 			if s.ID == v.current {
-				label.TextStyle = fyne.TextStyle{Bold: true}
+				row.TextStyle = fyne.TextStyle{Bold: true}
 			} else {
-				label.TextStyle = fyne.TextStyle{}
+				row.TextStyle = fyne.TextStyle{}
+			}
+			sid := s.ID
+			row.onTap = func() {
+				if v.onSelect != nil {
+					v.onSelect(sid)
+				}
+			}
+			row.onDoubleTap = func() {
+				v.renameSession(sid)
 			}
 		},
 	)
@@ -169,6 +206,72 @@ func (v *SessionSidebar) createNew() {
 	if v.onSelect != nil {
 		v.onSelect(sess.ID)
 	}
+}
+
+// renameSession asks for a new title and persists it. The dialog is pre-filled
+// with the current title; an empty name or an unchanged one is a no-op.
+func (v *SessionSidebar) renameSession(sessionID string) {
+	v.mu.Lock()
+	var sess session.Session
+	for _, s := range v.sessions {
+		if s.ID == sessionID {
+			sess = s
+			break
+		}
+	}
+	v.mu.Unlock()
+	if sess.ID == "" {
+		return
+	}
+entry := widget.NewEntry()
+	entry.SetText(sess.Title)
+	entry.SetPlaceHolder(config.Tr().GUIRenameSessionName)
+	dlg := dialog.NewForm(
+		config.Tr().GUIRenameSessionTitle,
+		config.Tr().GUIDone,
+		config.Tr().GUIDismiss,
+		[]*widget.FormItem{widget.NewFormItem(config.Tr().GUIRenameSessionName, entry)},
+		func(confirmed bool) {
+			if !confirmed {
+				return
+			}
+			sess.Title = strings.TrimSpace(entry.Text)
+			if sess.Title == "" {
+				return
+			}
+			if _, err := v.core.Sessions.Save(v.ctx, sess); err != nil {
+				logging.Error("Failed to rename session: %v", err)
+			}
+		},
+		v.win,
+	)
+	dlg.Resize(fyne.NewSize(500, 0))
+	dlg.Show()
+}
+
+// applyRename trims and persists the new title; it reports whether the title
+// actually changed so callers can skip redundant saves.
+func (v *SessionSidebar) applyRename(sessionID, name string) bool {
+	name = strings.TrimSpace(name)
+	v.mu.Lock()
+	var sess session.Session
+	for _, s := range v.sessions {
+		if s.ID == sessionID {
+			sess = s
+			break
+		}
+	}
+	v.mu.Unlock()
+	if sess.ID == "" || name == "" || name == sess.Title {
+		return false
+	}
+	sess.Title = name
+	_, err := v.core.Sessions.Save(v.ctx, sess)
+	if err != nil {
+		logging.Error("Failed to rename session: %v", err)
+		return false
+	}
+	return true
 }
 
 func (v *SessionSidebar) deleteCurrent() {

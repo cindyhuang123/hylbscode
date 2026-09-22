@@ -125,12 +125,15 @@ type Translation struct {
 
 	// GUI input / sidebar.
 	GUIInputPlaceholder   string
-	GUINewSession         string
-	GUIDelete             string
-	GUIDeleteSessionTitle string
-	GUIDeleteSessionMsg   string
-	GUIDone               string
-	GUIDismiss            string
+	GUINewSession            string
+	GUIDelete                string
+	GUIDeleteSessionTitle    string
+	GUIDeleteSessionMsg      string
+	GUIRenameSessionTitle    string
+	GUIRenameSessionName     string
+	GUIRenameSessionEmpty    string
+	GUIDone                  string
+	GUIDismiss               string
 
 	// GUI status line / tool block.
 	ChatStreaming   string
@@ -138,18 +141,20 @@ type Translation struct {
 	ChatBlocked     string
 	ChatCancelled   string
 	ChatErrorPrefix string
+	ChatQueued      string
 	Expand          string
 	Collapse        string
 	AttachmentMsg   string
 
 	// GUI help.
-	GUIHelpMenu       string
-	GUIHelpShortcuts  string
-	GUISend           string
-	GUINewline        string
-	GUICancelResponse string
-	GUIHistoryNav     string
-	GUIScrollOutput   string
+	GUIHelpMenu          string
+	GUIHelpShortcuts     string
+	GUISend              string
+	GUINewline           string
+	GUICancelResponse    string
+	GUIHistoryNav        string
+	GUIScrollOutput      string
+	GUIDoubleClickRename string
 
 	// GUI provider setup.
 	GUIProviderMenu    string
@@ -289,6 +294,9 @@ var (
 			GUIDelete:             "Delete",
 			GUIDeleteSessionTitle: "Delete session",
 			GUIDeleteSessionMsg:   "Delete \"%s\"? This cannot be undone.",
+			GUIRenameSessionTitle: "Rename session",
+			GUIRenameSessionName:  "New name",
+			GUIRenameSessionEmpty: "Name cannot be empty.",
 			GUIDone:               "Done",
 			GUIDismiss:            "Cancel",
 
@@ -299,12 +307,14 @@ var (
 			GUICancelResponse: "Cancel response",
 			GUIHistoryNav:     "Recall sent messages",
 			GUIScrollOutput:   "Scroll output to top/bottom",
+			GUIDoubleClickRename: "Rename a session (pre-filled with its current title)",
 
 			ChatStreaming:   "Responding...",
 			ChatDone:        "Done",
 			ChatBlocked:     "Still responding, please wait before sending",
 			ChatCancelled:   "Cancelled",
 			ChatErrorPrefix: "Request failed: ",
+			ChatQueued:      "Queued, will send when the current response finishes",
 			Expand:          "Expand",
 			Collapse:        "Collapse",
 			AttachmentMsg:   "Attachment %s (%s)",
@@ -442,6 +452,9 @@ var (
 			GUIDelete:             "删除",
 			GUIDeleteSessionTitle: "删除会话",
 			GUIDeleteSessionMsg:   "确定删除 \"%s\"? 此操作不可撤销。",
+			GUIRenameSessionTitle: "重命名会话",
+			GUIRenameSessionName:  "新名称",
+			GUIRenameSessionEmpty: "名称不能为空。",
 			GUIDone:               "完成",
 			GUIDismiss:            "取消",
 
@@ -452,12 +465,14 @@ var (
 			GUICancelResponse: "取消应答",
 			GUIHistoryNav:     "翻看已发送消息",
 			GUIScrollOutput:   "输出区滚动到顶部/底部",
+			GUIDoubleClickRename: "重命名会话（对话框预填当前标题，可直接修改）",
 
 			ChatStreaming:   "正在应答...",
 			ChatDone:        "应答完毕",
 			ChatBlocked:     "正在应答中，请等应答完毕后再发送",
 			ChatCancelled:   "已取消",
 			ChatErrorPrefix: "请求失败：",
+			ChatQueued:      "已排队，当前应答结束后自动发送",
 			Expand:          "展开",
 			Collapse:        "收起",
 			AttachmentMsg:   "附件 %s (%s)",

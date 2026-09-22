@@ -309,8 +309,12 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			copyBtn.SetIcon(icon)
 			copyBtn.Refresh()
 			time.AfterFunc(1200*time.Millisecond, func() {
-				copyBtn.SetIcon(theme.ContentCopyIcon())
-				copyBtn.Refresh()
+				// 回到 Fyne 主线程再改图标: AfterFunc 回调在独立
+				// goroutine 跑, 直接调用 widget 会触发 Fyne 线程违规。
+				fyne.Do(func() {
+					copyBtn.SetIcon(theme.ContentCopyIcon())
+					copyBtn.Refresh()
+				})
 			})
 		}
 		copyBtn = widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
@@ -373,12 +377,24 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 			var block *ToolBlock
 			var ok bool
 			if !compact && !codeTool {
-				block, ok = active[p.ID]
+				if b, found := active[p.ID]; found && (!b.noOutput || !p.Finished) {
+					// 运行中的紧凑块在流式期间复用(保持内容积累);
+					// 完成后的非紧凑渲染不复用紧凑块, 改为全量块显示结果。
+					block, ok = b, true
+				}
 			}
 			if !ok {
-				if compact || codeTool {
+				switch {
+				case compact || codeTool:
 					block = NewCompactToolBlock(p.Name)
-				} else {
+				case !p.Finished:
+					// 工具运行中: 用紧凑块隐藏输出区, 避免 bash 等工具的大段
+					// stdout(如日志内容)在应答过程中实时刷屏; 输出会积累在
+					// 块内, 可点击展开查看。工具完成后由 ToolResult 分支决定
+					// 最终形态(中间轮保持紧凑 / 最终轮全量显示)。
+					block = NewCompactToolBlock(p.Name)
+					block.SetOutput(summarizeToolInput(p.Name, p.Input))
+				default:
 					block = NewToolBlock(p.Name)
 					block.SetOutput(summarizeToolInput(p.Name, p.Input))
 				}
@@ -431,7 +447,7 @@ func renderMessage(m message.Message, active map[string]*ToolBlock, doneTools ma
 				block = NewToolBlock(name)
 			}
 			block.SetResult(name, p.IsError)
-			if !compact && !codeTool {
+			if !codeTool {
 				block.SetOutput(p.Content)
 			}
 			if p.ToolCallID != "" {

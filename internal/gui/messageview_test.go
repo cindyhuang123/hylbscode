@@ -27,8 +27,32 @@ func TestRenderMessageToolCallCreatesBlock(t *testing.T) {
 	if got := block.TitleText(); got != "bash" {
 		t.Fatalf("expected running state title to be the tool name, got %q", got)
 	}
-	if block.output.Text != "ls" {
-		t.Fatalf("expected bash command rendered in output, got %q", block.output.Text)
+	if block.output.Text != "" {
+		t.Fatalf("expected no output shown while the tool is still running, got %q", block.output.Text)
+	}
+	if !block.outputBox.Hidden {
+		t.Fatal("expected running tool block output area to be hidden")
+	}
+	if block.expandBtn.Hidden {
+		t.Fatal("expected expand button visible while the tool is running")
+	}
+}
+
+func TestRenderMessageFinishedReplacesRunningCompactBlock(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Assistant,
+		Parts: []message.ContentPart{
+			message.ToolCall{ID: "call_1", Name: "bash", Input: `{"command":"ls"}`, Finished: true},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, false)
+	block, ok := used["call_1"]
+	if !ok {
+		t.Fatal("expected used map to contain call_1")
+	}
+	if block.outputBox.Hidden {
+		t.Fatal("expected finished tool block output area to be visible")
 	}
 }
 
@@ -298,10 +322,60 @@ func TestRenderMessageToolResultCompactTitleOnly(t *testing.T) {
 		t.Fatalf("expected compact title to be the tool name, got %q", got)
 	}
 	if block.output.Text != "" {
-		t.Fatalf("expected no tool result content rendered in compact mode, got %q", block.output.Text)
+		t.Fatalf("expected no tool result content rendered in collapsed compact mode, got %q", block.output.Text)
 	}
 	if !block.outputBox.Hidden {
 		t.Fatal("expected compact block output area to be hidden")
+	}
+	if block.expandBtn.Hidden {
+		t.Fatal("expected expand button to be visible when compact block has output")
+	}
+}
+
+func TestRenderMessageToolResultCompactExpand(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Tool,
+		Parts: []message.ContentPart{
+			message.ToolResult{ToolCallID: "call_1", Name: "bash", Content: "line1\nline2"},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, true)
+	block := used["call_1"]
+	if block == nil {
+		t.Fatal("expected used map to contain call_1")
+	}
+	if !block.outputBox.Hidden {
+		t.Fatal("expected output area hidden before expand")
+	}
+	block.toggleExpand()
+	if block.outputBox.Hidden {
+		t.Fatal("expected output area visible after expand")
+	}
+	if block.output.Text != "line1\nline2" {
+		t.Fatalf("expected expanded output to show content, got %q", block.output.Text)
+	}
+	block.toggleExpand()
+	if !block.outputBox.Hidden {
+		t.Fatal("expected output area hidden again after collapse")
+	}
+}
+
+func TestRenderMessageToolResultCompactNoContentNoButton(t *testing.T) {
+	test.NewApp()
+	m := message.Message{
+		Role: message.Tool,
+		Parts: []message.ContentPart{
+			message.ToolResult{ToolCallID: "call_1", Name: "bash", Content: ""},
+		},
+	}
+	_, used := renderMessage(m, map[string]*ToolBlock{}, nil, true)
+	block := used["call_1"]
+	if block == nil {
+		t.Fatal("expected used map to contain call_1")
+	}
+	if !block.expandBtn.Hidden {
+		t.Fatal("expected expand button hidden when compact block has no output")
 	}
 }
 
