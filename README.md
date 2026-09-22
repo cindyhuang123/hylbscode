@@ -89,6 +89,13 @@ make build             # 构建（需要 CGO：gcc + X11/Wayland 开发库）
 | `decision` | 决策分析，加权打分 + 决策日志 |
 | `learning` | 快速上手新领域，最小闭环 |
 | `exploration` | 无经验/无参考的未知领域探索 |
+| `terminal-sense` | 读日志/报错/堆栈，翻译成排查线索 |
+| `ci-fixer` | CI 失败先复现、根因、最小修复 |
+| `data-cleaner` | 批量清洗 CSV/Excel/JSON（python3 脚本化） |
+| `changelog-miner` | 从 git 提交挖关键改动，标 breaking 风险 |
+| `dependency-guard` | 升级依赖前评估破坏面 |
+| `release-notes` | 从 diff 提炼用户视角的发布说明 |
+| `playwright-scout` | Playwright DOM 文本断言版 E2E（AI 无法看截图） |
 
 新增一个类别只需在 `skills/` 下新建目录并放一个 `Skill.md`（frontmatter 带 `name` 与 `description`），启动扫描后会自动出现在技能目录中，无需改配置。
 

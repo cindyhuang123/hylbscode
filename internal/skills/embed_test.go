@@ -30,6 +30,29 @@ func TestEnsureDefaultGenerates(t *testing.T) {
 	}
 }
 
+func TestEnsureDefaultGeneratesAll(t *testing.T) {
+	base := filepath.Join(t.TempDir(), "skills")
+	if err := EnsureDefault(base); err != nil {
+		t.Fatal(err)
+	}
+	list := Scan(base)
+	if len(list) != 18 {
+		t.Fatalf("Scan returned %d skills, want 18 (11 旧 + 7 新)", len(list))
+	}
+	names := map[string]bool{}
+	for _, s := range list {
+		names[s.Name] = true
+	}
+	for _, want := range []string{
+		"terminal-sense", "ci-fixer", "data-cleaner",
+		"changelog-miner", "dependency-guard", "release-notes", "playwright-scout",
+	} {
+		if !names[want] {
+			t.Errorf("missing new skill %q in generated set", want)
+		}
+	}
+}
+
 func TestEnsureDefaultKeepsExisting(t *testing.T) {
 	base := filepath.Join(t.TempDir(), "skills")
 	// 用户自定义目录：只有一个自定义类别
