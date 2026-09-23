@@ -7,6 +7,7 @@ HyLbsCode 是一个本地优先的 AI 编程助手桌面应用：三栏布局（
 ## 功能特性
 
 - **多模型支持** — Anthropic / OpenAI / Gemini / Copilot / Bedrock / Azure / VertexAI / Groq / OpenRouter / XAI / 本地端点
+- **DeepSeek 思考模式** — coder/task 默认开启 thinking（`reasoning_effort` 可配推理力度），工具轮中途自动降级防 400；未配置时静默回退，无启动噪音警告
 - **流式响应** — Markdown、思考过程、工具调用块实时渲染（80ms 合并节流）
 - **AI 工具调用** — bash / edit / write / glob / grep / ls / view / fetch / patch / sourcegraph / diagnostics，破坏性操作需弹窗批准
 - **MCP 支持** — 从配置文件动态加载 MCP 服务器（stdio / sse）
@@ -56,6 +57,8 @@ make build             # 构建（需要 CGO：gcc + X11/Wayland 开发库）
 | 字段 | 说明 |
 |---|---|
 | `providers` / `agents` | 模型服务商（apiKey/baseURL）与各智能体模型 |
+| `agents.<name>.thinking` | DeepSeek 思考开关：`enabled` / `disabled`；默认 coder/task 开启，summarizer/title 关闭（title 仅 80 tokens，思考会挤占输出） |
+| `agents.<name>.reasoningEffort` | 推理力度：`low` / `medium` / `high`，仅 thinking 开启时生效（DeepSeek 将 medium 映射为 high）；未配置时静默用 medium |
 | `autoCompact` | 接近上下文窗口时自动摘要（默认 true） |
 | `shell` | bash 工具的 shell 路径/参数 |
 | `mcpServers` | MCP 服务器定义（stdio 或 sse） |

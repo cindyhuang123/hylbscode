@@ -11,19 +11,19 @@
     "coder": {
       "model": "deepseek-v4-pro",
       "maxTokens": 8000,
-      "reasoningEffort": "",
-      "thinking": ""
+      "reasoningEffort": "high",
+      "thinking": "enabled"
     },
     "summarizer": {
       "model": "deepseek-v4-flash",
       "maxTokens": 4000,
       "reasoningEffort": "",
-      "thinking": "enabled"
+      "thinking": "disabled"
     },
     "task": {
       "model": "deepseek-v4-flash",
       "maxTokens": 8000,
-      "reasoningEffort": "",
+      "reasoningEffort": "medium",
       "thinking": "enabled"
     },
     "title": {
