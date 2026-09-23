@@ -275,6 +275,16 @@ func (c *ChatInput) KeyUp(ev *fyne.KeyEvent) {
 	c.entry.KeyUp(ev)
 }
 
+// TypedShortcut 实现 fyne.Shortcutable，把 Ctrl+V/C/X/A 等委托给内层 entry
+// （内层 chatEntry 内嵌 widget.Entry，自身注册了 paste/copy/cut/selectAll）。
+// 必须实现：fyne 只把快捷键分发给「当前焦点对象」且该对象需 Shortcutable
+// （见 fyne window.go:865 focused.(fyne.Shortcutable)），而本控件焦点常驻
+// 外层 ChatInput（FocusLost 每帧抢回），若外层不实现 Shortcutable，Ctrl+V
+// 会被整体丢弃，只剩右键菜单可用。
+func (c *ChatInput) TypedShortcut(shortcut fyne.Shortcut) {
+	c.entry.TypedShortcut(shortcut)
+}
+
 func (c *ChatInput) shiftHeld() bool {
 	d, ok := fyne.CurrentApp().Driver().(desktop.Driver)
 	if !ok {

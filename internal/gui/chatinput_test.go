@@ -215,3 +215,28 @@ func TestEscTriggersCancel(t *testing.T) {
 		t.Fatalf("Esc must not mutate text, got %q", ci.Text())
 	}
 }
+
+// 编译期断言：ChatInput 必须仍是 fyne.Shortcutable。
+// 根因背景：fyne 只把快捷键分发给「当前焦点对象」且该对象需实现 Shortcutable
+// （见 fyne window.go:865 focused.(fyne.Shortcutable)），而本控件焦点常驻外层
+// ChatInput（FocusLost 每帧抢回），若不实现 Shortcutable，Ctrl+V/C/X/A 会被整体
+// 丢弃，只剩右键菜单可用。此断言保证 ChatInput 永远满足该接口——一旦有人删掉
+// TypedShortcut 委托，这里编译直接失败，杜绝“只能右键、Ctrl+V 时灵时不灵”回归。
+var _ fyne.Shortcutable = (*ChatInput)(nil)
+
+func TestChatInputTypedShortcutPastes(t *testing.T) {
+	test.NewApp()
+	ci := NewChatInput(func(string) {}, nil)
+	win := test.NewWindow(ci)
+	defer win.Close()
+	win.Canvas().Focus(ci)
+
+	want := "pasted via shortcut"
+	cb := test.NewClipboard()
+	cb.SetContent(want)
+	ci.TypedShortcut(&fyne.ShortcutPaste{Clipboard: cb})
+	if ci.Text() != want {
+		t.Fatalf("expected Ctrl+V paste to reach inner entry, got %q", ci.Text())
+	}
+}
+
