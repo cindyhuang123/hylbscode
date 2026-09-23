@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -24,33 +25,26 @@ func Connect() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 	dbPath := filepath.Join(dataDir, "hylbscode.db")
-	// Open the SQLite database
-	db, err := sql.Open("sqlite3", dbPath)
+
+	// PRAGMA 通过 DSN 的 _pragma 参数固化: 驱动对每条新连接都会执行,
+	// 避免 database/sql 连接池中部分连接未应用 journal_mode/page_size
+	// 等连接级设置, 导致多连接并发写 WAL 时数据库损坏(malformed)。
+	// busy_timeout 必须最先设置(驱动要求: encryption keys → busy timeout → locking mode)。
+	dsn := fmt.Sprintf("file:%s?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=page_size(4096)&_pragma=foreign_keys(ON)&_pragma=synchronous(NORMAL)&_pragma=cache_size(-8000)", url.PathEscape(dbPath))
+
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+
+	// 限制连接池: SQLite 单写者, 多连接并发写 WAL 容易相互干扰
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	// Verify connection
 	if err = db.Ping(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-
-	// Set pragmas for better performance
-	pragmas := []string{
-		"PRAGMA foreign_keys = ON;",
-		"PRAGMA journal_mode = WAL;",
-		"PRAGMA page_size = 4096;",
-		"PRAGMA cache_size = -8000;",
-		"PRAGMA synchronous = NORMAL;",
-	}
-
-	for _, pragma := range pragmas {
-		if _, err = db.Exec(pragma); err != nil {
-			logging.Error("Failed to set pragma", pragma, err)
-		} else {
-			logging.Debug("Set pragma", "pragma", pragma)
-		}
 	}
 
 	goose.SetBaseFS(FS)
